@@ -12,6 +12,11 @@ jobs:
   # =============================================================
   commit-lint:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./soulflow-api
+
     steps:
       - uses: actions/checkout@v3
         with:
