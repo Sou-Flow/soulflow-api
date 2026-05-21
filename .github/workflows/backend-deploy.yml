@@ -2,9 +2,9 @@ name: Spring Boot CI/CD Pipeline
 
 on:
   push:
-    branches: ["main"]
+    branches: ["develop", "main"] # Check khi push lên cả 2 nhánh
   pull_request:
-    branches: ["main"] # Kích hoạt kiểm tra khi có ai tạo Pull Request vào nhánh main
+    branches: ["develop"] # Kích hoạt kiểm tra khi có ai tạo Pull Request vào nhánh main
 
 jobs:
   # =============================================================
