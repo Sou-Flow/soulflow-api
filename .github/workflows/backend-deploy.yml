@@ -2,9 +2,13 @@ name: Spring Boot CI/CD Pipeline
 
 on:
   push:
-    branches: ["main"]
+    branches: ["develop", "main"]
+    paths:
+      - "soulflow-api/**" # Chỉ chạy khi có sửa đổi bên trong thư mục Backend
   pull_request:
-    branches: ["main"] # Kích hoạt kiểm tra khi có ai tạo Pull Request vào nhánh main
+    branches: ["develop"]
+    paths:
+      - "soulflow-api/**" # Kích hoạt kiểm tra khi có ai tạo Pull Request vào nhánh develop
 
 jobs:
   # =============================================================
