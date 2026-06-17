@@ -38,7 +38,7 @@ public class Account extends SoftDeletableEntity {
   private String password;
 
   @Column(name = "fullname", nullable = false, length = 50)
-  private String fullname;
+  private String fullName;
 
   @Column(name = "email", unique = true, length = 50)
   private String email;

@@ -68,3 +68,6 @@ logging:
         hikari: ERROR
       # Bật log ở mức DEBUG cho code trong dự án của bạn
       souflow: DEBUG
+app:
+  cors:
+    allowed-origins: ${FRONTEND_URL:http://localhost:3000}
