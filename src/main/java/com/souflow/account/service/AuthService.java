@@ -2,8 +2,11 @@ package com.souflow.account.service;
 
 import com.souflow.account.dto.AccountResponse;
 import com.souflow.account.dto.AuthResponse;
+import com.souflow.account.dto.ForgotPasswordRequest;
 import com.souflow.account.dto.LoginRequest;
 import com.souflow.account.dto.RegisterRequest;
+import com.souflow.account.dto.ResetPasswordRequest;
+import com.souflow.account.dto.UpdateProfileRequest;
 import com.souflow.account.entity.Account;
 import com.souflow.account.entity.Role;
 import com.souflow.account.repository.AccountRepository;
@@ -122,5 +125,77 @@ public class AuthService {
         .roleCode(account.getRole().getCode())
         .createdDate(account.getCreatedDate())
         .build();
+  }
+
+  @Transactional
+  public void changePassword(
+      AccountUserDetails userDetails, String currentPassword, String newPassword) {
+    Account account = userDetails.getAccount();
+
+    if (!passwordEncoder.matches(currentPassword, account.getPassword())) {
+      throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Mat khau hien tai khong dung");
+    }
+
+    account.setPassword(passwordEncoder.encode(newPassword));
+    accountRepository.save(account);
+  }
+
+  @Transactional
+  public void disableAccount(Long id) {
+    Account account =
+        accountRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Tai khoan khong ton tai"));
+
+    account.setDisabled(true);
+    accountRepository.save(account);
+  }
+
+  @Transactional
+  public void enableAccount(Long id) {
+    Account account =
+        accountRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Tai khoan khong ton tai"));
+
+    account.setDisabled(false);
+    accountRepository.save(account);
+  }
+
+  @Transactional
+  public void updateProfile(AccountUserDetails userDetails, UpdateProfileRequest request) {
+    Account account = userDetails.getAccount();
+
+    if (!account.getEmail().equals(request.getEmail())
+        && accountRepository.existsByEmailAndDeletedFalse(request.getEmail())) {
+      throw new BusinessException(
+          ErrorCode.DUPLICATE_RESOURCE, "Email da ton tai", HttpStatus.CONFLICT);
+    }
+
+    account.setFullName(request.getFullName());
+    account.setEmail(request.getEmail());
+    account.setPhoneNumber(request.getPhoneNumber());
+    account.setAddress(request.getAddress());
+
+    accountRepository.save(account);
+  }
+
+  @Transactional
+  public void forgotPassword(ForgotPasswordRequest request) {
+    Account account =
+        accountRepository
+            .findByEmailAndDeletedFalse(request.getEmail())
+            .orElseThrow(() -> new ResourceNotFoundException("Tai khoan khong ton tai"));
+  }
+
+  @Transactional
+  public void resetPassword(ResetPasswordRequest request) {
+    String email = jwtService.extractEmailFromToken(request.getToken());
+    Account account =
+        accountRepository
+            .findByEmailAndDeletedFalse(email)
+            .orElseThrow(() -> new ResourceNotFoundException("Tai khoan khong ton tai"));
+    account.setPassword(passwordEncoder.encode(request.getNewPassword()));
+    accountRepository.save(account);
   }
 }
