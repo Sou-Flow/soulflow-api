@@ -1,5 +1,6 @@
 package com.souflow.category.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.souflow.common.entity.SoftDeletableEntity;
 import com.souflow.product.entity.Product;
 import jakarta.persistence.Column;
@@ -48,5 +49,6 @@ public class Category extends SoftDeletableEntity {
 
   @OneToMany(mappedBy = "category")
   @Builder.Default
+  @JsonIgnore
   private List<Product> products = new ArrayList<>();
 }
