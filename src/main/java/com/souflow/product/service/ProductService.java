@@ -51,7 +51,7 @@ public class ProductService {
   @Transactional
   public ProductResponse create(ProductRequest request) {
     log.info("Creating product nameVn={}", request.getNameVn());
-    Category category = categoryService.getEntityById(request.getCategoryId());
+    Category category = categoryService.getEnityById(request.getCategoryId());
 
     Product product =
         Product.builder()
@@ -79,7 +79,7 @@ public class ProductService {
             .findByIdAndDeletedFalse(id)
             .orElseThrow(() -> new ResourceNotFoundException("San pham khong ton tai"));
 
-    Category category = categoryService.getEntityById(request.getCategoryId());
+    Category category = categoryService.getEnityById(request.getCategoryId());
 
     product.setNameVn(request.getNameVn());
     product.setNameEng(request.getNameEng());
@@ -100,6 +100,7 @@ public class ProductService {
         productRepository
             .findByIdAndDeletedFalse(id)
             .orElseThrow(() -> new ResourceNotFoundException("San pham khong ton tai"));
+
     product.setDeleted(true);
     productRepository.save(product);
   }

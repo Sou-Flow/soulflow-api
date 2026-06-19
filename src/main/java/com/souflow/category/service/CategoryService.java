@@ -78,7 +78,7 @@ public class CategoryService {
     categoryRepository.save(category);
   }
 
-  public Category getEntityById(Long id) {
+  public Category getEnityById(Long id) {
     return categoryRepository
         .findByIdAndDeletedFalse(id)
         .orElseThrow(() -> new ResourceNotFoundException("Danh muc khong ton tai"));

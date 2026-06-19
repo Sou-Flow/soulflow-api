@@ -13,4 +13,7 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
   boolean existsByUsernameAndDeletedFalse(String username);
 
   boolean existsByEmailAndDeletedFalse(String email);
+
+  // Optional<Account> findByEmailAndChangePasswordTokenAndDeletedFalse(String
+  // email, String token);
 }
