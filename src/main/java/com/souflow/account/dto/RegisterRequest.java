@@ -18,9 +18,13 @@ public class RegisterRequest {
   @Size(min = 6, max = 100, message = "Mat khau tu 6 den 100 ky tu")
   private String password;
 
+  @NotBlank(message = "Xac nhan mat khau khong duoc de trong")
+  @Size(min = 6, max = 100, message = "Mat khau tu 6 den 100 ky tu")
+  private String confirmPassword;
+
   @NotBlank(message = "Ho ten khong duoc de trong")
   @Size(max = 50, message = "Ho ten toi da 50 ky tu")
-  private String fullname;
+  private String fullName;
 
   @NotBlank(message = "Email khong duoc de trong")
   @Email(message = "Email khong hop le")

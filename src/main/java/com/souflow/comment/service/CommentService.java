@@ -92,7 +92,7 @@ public class CommentService {
     return CommentResponse.builder()
         .id(comment.getId())
         .content(comment.getContent())
-        .authorName(comment.getAccount().getFullname())
+        .authorName(comment.getAccount().getFullName())
         .createdDate(comment.getCreatedDate())
         .replies(replies)
         .build();
@@ -102,7 +102,7 @@ public class CommentService {
     return ReplyResponse.builder()
         .id(reply.getId())
         .content(reply.getContent())
-        .authorName(reply.getAccount().getFullname())
+        .authorName(reply.getAccount().getFullName())
         .createdDate(reply.getCreatedDate())
         .build();
   }

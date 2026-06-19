@@ -2,18 +2,18 @@ version: '3.8'
 
 services:
   # 1. Cấu hình SQL Server
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: flowershop_sqlserver
-    environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=FlowerShop@2026 # Bắt buộc pass khó: >= 8 ký tự, có chữ hoa, thường, số
-      - MSSQL_PID=Developer
-    ports:
-      - "1433:1433" # Ánh xạ port ra máy thật
-    volumes:
-      - sqlserver_data:/var/opt/mssql # Lưu lại data để tắt Docker không bị mất dữ liệu
-    restart: unless-stopped
+  # sqlserver:
+  #   image: mcr.microsoft.com/mssql/server:2022-latest
+  #   container_name: flowershop_sqlserver
+  #   environment:
+  #     - ACCEPT_EULA=Y
+  #     - MSSQL_SA_PASSWORD=FlowerShop@2026 # Bắt buộc pass khó: >= 8 ký tự, có chữ hoa, thường, số
+  #     - MSSQL_PID=Developer
+  #   ports:
+  #     - "1433:1433" # Ánh xạ port ra máy thật
+  #   volumes:
+  #     - sqlserver_data:/var/opt/mssql # Lưu lại data để tắt Docker không bị mất dữ liệu
+  #   restart: unless-stopped
 
   # 2. Cấu hình Redis
   redis:
