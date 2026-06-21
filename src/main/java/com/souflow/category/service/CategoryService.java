@@ -4,6 +4,8 @@ import com.souflow.category.dto.CategoryRequest;
 import com.souflow.category.dto.CategoryResponse;
 import com.souflow.category.entity.Category;
 import com.souflow.category.repository.CategoryRepository;
+import com.souflow.common.exception.BusinessException;
+import com.souflow.common.exception.ErrorCode;
 import com.souflow.common.exception.ResourceNotFoundException;
 import com.souflow.common.util.IdGenerator;
 import java.util.List;
@@ -40,6 +42,11 @@ public class CategoryService {
   @Transactional
   public CategoryResponse create(CategoryRequest request) {
     log.info("Creating category nameVn={}", request.getNameVn());
+
+    // sửa phần này
+    if (categoryRepository.existsByNameVnAndDeletedFalse(request.getNameVn())) {
+      throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, null);
+    }
     Category category =
         Category.builder()
             .businessId(IdGenerator.generateBusinessId())
@@ -58,6 +65,11 @@ public class CategoryService {
         categoryRepository
             .findByIdAndDeletedFalse(id)
             .orElseThrow(() -> new ResourceNotFoundException("Danh muc khong ton tai"));
+    // Sửa phần này
+    if (categoryRepository.existsByNameVnAndDeletedFalseAndIdNot(request.getNameVn(), id)) {
+
+      throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, null);
+    }
 
     category.setNameVn(request.getNameVn());
     category.setNameEng(request.getNameEng());
@@ -78,7 +90,7 @@ public class CategoryService {
     categoryRepository.save(category);
   }
 
-  public Category getEnityById(Long id) {
+  public Category getEntityById(Long id) {
     return categoryRepository
         .findByIdAndDeletedFalse(id)
         .orElseThrow(() -> new ResourceNotFoundException("Danh muc khong ton tai"));
