@@ -12,4 +12,9 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
   Optional<Category> findByIdAndDeletedFalse(Long id);
 
   Optional<Category> findByBusinessIdAndDeletedFalse(String businessId);
+
+  // Sửa phần này
+  boolean existsByNameVnAndDeletedFalse(String nameVn);
+
+  boolean existsByNameVnAndDeletedFalseAndIdNot(String nameVn, Long id);
 }
