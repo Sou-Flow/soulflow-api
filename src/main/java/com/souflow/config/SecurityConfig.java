@@ -39,12 +39,17 @@ public class SecurityConfig {
   private List<String> allowedOrigins;
 
   private static final String[] PUBLIC_ENDPOINTS = {
-    "/api/auth/**",
+    "/api/auth/login",
+    "/api/auth/register",
+    "/api/auth/forgot-password",
+    "/api/auth/reset-password",
+    "/api/auth/refresh-token",
     "/swagger-ui/**",
     "/swagger-ui.html",
     "/api-docs/**",
     "/v3/api-docs/**",
-    "/actuator/health"
+    "/actuator/health",
+    "/api/payments/sepay-webhook"
   };
 
   @Bean

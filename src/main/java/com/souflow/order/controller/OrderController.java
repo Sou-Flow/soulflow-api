@@ -43,6 +43,13 @@ public class OrderController {
         ApiResponse.success(HttpStatus.OK.value(), "Lay don hang thanh cong", order));
   }
 
+  @GetMapping("/by-code/{code}")
+  public ResponseEntity<ApiResponse<OrderResponse>> findByCode(@PathVariable String code) {
+    OrderResponse order = orderService.findByCode(code);
+    return ResponseEntity.ok(
+        ApiResponse.success(HttpStatus.OK.value(), "Lay don hang thanh cong", order));
+  }
+
   @PostMapping
   public ResponseEntity<ApiResponse<OrderResponse>> createOrder(
       @AuthenticationPrincipal AccountUserDetails userDetails,
@@ -56,6 +63,15 @@ public class OrderController {
   public ResponseEntity<ApiResponse<OrderResponse>> updateStatus(
       @PathVariable Long id, @RequestParam String status) {
     OrderResponse order = orderService.updateStatus(id, status);
+    return ResponseEntity.ok(
+        ApiResponse.success(
+            HttpStatus.OK.value(), "Cap nhat trang thai don hang thanh cong", order));
+  }
+
+  @PutMapping("/by-code/{code}/status")
+  public ResponseEntity<ApiResponse<OrderResponse>> updateStatusByCode(
+      @PathVariable String code, @RequestParam String status) {
+    OrderResponse order = orderService.updateStatusByCode(code, status);
     return ResponseEntity.ok(
         ApiResponse.success(
             HttpStatus.OK.value(), "Cap nhat trang thai don hang thanh cong", order));

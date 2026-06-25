@@ -1,5 +1,6 @@
 package com.souflow.order.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -8,6 +9,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CreateOrderRequest {
 
   @NotNull(message = "Cart ID khong duoc de trong")
@@ -24,4 +26,6 @@ public class CreateOrderRequest {
   @NotBlank(message = "Dia chi khong duoc de trong")
   @Size(max = 100)
   private String address;
+
+  private String paymentMethod;
 }
