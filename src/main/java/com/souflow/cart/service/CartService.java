@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CartService {
 
-  private static final int CART_EXPIRY_HOURS = 24;
+  private static final int CART_EXPIRY_HOURS = 48;
 
   private final CartRepository cartRepository;
   private final CartItemRepository cartItemRepository;
@@ -52,7 +52,20 @@ public class CartService {
 
   @Transactional
   public CartResponse createCart(Account account) {
-    log.info("Creating cart for accountId={}", account.getId());
+    // 1. Prevent redundant creation by returning an existing active cart if possible
+    Cart activeCart =
+        cartRepository.findActiveCartsByAccountId(account.getId()).stream()
+            .filter(c -> !c.isExpired() && c.getExpiredDate().isAfter(LocalDateTime.now()))
+            .findFirst()
+            .orElse(null);
+
+    if (activeCart != null) {
+      log.info("Returning existing active cart for accountId={}", account.getId());
+      return mapToResponse(activeCart);
+    }
+
+    // 2. Create new cart if none exists
+    log.info("Creating new cart for accountId={}", account.getId());
     Cart cart =
         Cart.builder()
             .businessId(IdGenerator.generateBusinessId())
@@ -103,6 +116,7 @@ public class CartService {
     }
 
     recalculateTotal(cart);
+    cart.setExpiredDate(LocalDateTime.now().plusHours(CART_EXPIRY_HOURS));
     return mapToResponse(cartRepository.save(cart));
   }
 
@@ -116,6 +130,7 @@ public class CartService {
 
     cart.getItems().removeIf(item -> item.getId().equals(itemId));
     recalculateTotal(cart);
+    cart.setExpiredDate(LocalDateTime.now().plusHours(CART_EXPIRY_HOURS));
     cartRepository.save(cart);
   }
 

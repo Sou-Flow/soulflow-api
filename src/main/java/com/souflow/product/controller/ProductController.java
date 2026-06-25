@@ -42,6 +42,13 @@ public class ProductController {
         ApiResponse.success(HttpStatus.OK.value(), "Lay san pham thanh cong", product));
   }
 
+  @GetMapping("/by-code/{code}")
+  public ResponseEntity<ApiResponse<ProductResponse>> findByCode(@PathVariable String code) {
+    ProductResponse product = productService.findByCode(code);
+    return ResponseEntity.ok(
+        ApiResponse.success(HttpStatus.OK.value(), "Lay san pham thanh cong", product));
+  }
+
   @PostMapping
   public ResponseEntity<ApiResponse<ProductResponse>> create(
       @Valid @RequestBody ProductRequest request) {
