@@ -3,6 +3,8 @@ package com.poly.models.services.impl;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -32,7 +34,10 @@ import lombok.RequiredArgsConstructor;
 public class DiscountServiceImpl implements DiscountService {
 
     private final DiscountRepository discountRepo;
+
     private final DiscountMapper discountMapper;
+
+    private final CacheManager cacheManager;
 
     @Override
     @Transactional
@@ -67,7 +72,6 @@ public class DiscountServiceImpl implements DiscountService {
     @Cacheable(value = "discountPages", key = "#keyword + '_' + #fromDate + '_' + #toDate + '_' + #expired + '_' + #deleted + '_' + #sortOrder + '_' + #pageNumber + '_' + #pageSize")
     public PageResponse<DiscountResponse> filterAndPaginateDiscounts(String keyword, LocalDateTime fromDate, LocalDateTime toDate,
             Boolean expired, Boolean deleted, SortOrder sortOrder, Integer pageNumber, Integer pageSize) {
-    	discountRepo.checkAndExpireBeforePagination(keyword, fromDate, toDate, expired, deleted);
         Sort sort = sortOrder == SortOrder.ASC
                 ? Sort.by("id").ascending()
                 : Sort.by("id").descending();
@@ -75,5 +79,14 @@ public class DiscountServiceImpl implements DiscountService {
         Page<Discount> page = discountRepo.filterDiscounts(keyword, fromDate, toDate, expired, deleted, pageable);
         List<DiscountResponse> responses = discountMapper.toResponseList(page.getContent());
         return new PageResponse<>(page, responses);
+    }
+
+    @Override
+    public void checkAndExpireBeforePagination(String keyword, LocalDateTime fromDate, LocalDateTime toDate, Boolean expired, Boolean deleted) {
+        int effectedRows = discountRepo.checkAndExpireBeforePagination(keyword, fromDate, fromDate, expired, deleted);
+        if (effectedRows != 0) {
+            Cache cache = cacheManager.getCache("discountPages");
+            cache.clear();
+        }
     }
 }

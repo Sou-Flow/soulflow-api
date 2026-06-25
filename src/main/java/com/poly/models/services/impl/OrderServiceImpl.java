@@ -3,6 +3,8 @@ package com.poly.models.services.impl;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -35,6 +37,8 @@ public class OrderServiceImpl implements OrderService {
 	private final OrderMapper orderMapper;
 	
     private final OrderRepository orderRepo;
+
+    private final CacheManager cacheManager;
 
     @Override
     @Transactional
@@ -77,7 +81,6 @@ public class OrderServiceImpl implements OrderService {
             SortOrder sortOrder,
             Integer pageNumber,
             Integer pageSize) {
-    	orderRepo.checkAndExpireBeforePagination(keyword, fromDate, toDate, expired, deleted);
     	Sort sort = sortOrder == SortOrder.ASC
 	            ? Sort.by("id").ascending()
 	            : Sort.by("id").descending();
@@ -87,4 +90,18 @@ public class OrderServiceImpl implements OrderService {
         return new PageResponse<>(page, responses);
     }
 
+    @Override
+    public void checkAndExpireBeforePagination(String keyword,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
+            OrderStatus status,
+            Boolean expired,
+            Boolean deleted
+        ) {
+        int effectedRows = orderRepo.checkAndExpireBeforePagination(keyword, fromDate, toDate, expired, deleted);
+        if (effectedRows != 0) {
+            Cache cache = cacheManager.getCache("orderPages");
+            cache.clear();
+        }
+    }
 }

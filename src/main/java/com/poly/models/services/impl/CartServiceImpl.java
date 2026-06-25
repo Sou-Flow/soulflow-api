@@ -3,6 +3,8 @@ package com.poly.models.services.impl;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -33,7 +35,8 @@ public class CartServiceImpl implements CartService {
 
     private final CartRepository cartRepo;                    
     private final CartMapper cartMapper;
-    
+    private CacheManager cacheManager;
+
     @Override
     @Transactional
     @CachePut(value = "cartList", key = "#result.pk")
@@ -59,6 +62,7 @@ public class CartServiceImpl implements CartService {
     @Override
     @Cacheable(value = "cartList", key = "#cartPk")
     public CartResponse findByPk(Long cartPk) {
+        // TODO Auto-generated method stub
         if (cartPk == null) throw new IllegalArgumentException("Can't not find cart when pk is null");
         Cart cart = cartRepo.findById(cartPk)
                 .orElseThrow(() -> new EntityNotFoundException("Cart not found with pk: " + cartPk));
@@ -69,7 +73,6 @@ public class CartServiceImpl implements CartService {
 	@Cacheable(value = "cartPages", key = "{#keyword + '_' + #fromDate + '_' + #toDate + '_' + #expired + '_' + #deleted + '_' + #sortOrder + '_' + #pageNumber + '_' + #pageSize}")
 	public PageResponse<CartResponse> filterAndPaginateCarts(String keyword, LocalDateTime fromDate, LocalDateTime toDate, Boolean expired, Boolean deleted, SortOrder sortOrder, Integer pageNumber, Integer pageSize) {
 		// TODO Auto-generated method stub
-		cartRepo.checkAndExpireBeforePagination(keyword, fromDate, toDate, expired, deleted);
 		Sort sort = sortOrder == SortOrder.ASC
 	            ? Sort.by("id").ascending()
 	            : Sort.by("id").descending();
@@ -78,4 +81,13 @@ public class CartServiceImpl implements CartService {
 		List<CartResponse> responses = cartMapper.toResponseList(page.getContent());
 		return new PageResponse<>(page, responses);
 	}
+
+    @Override
+    public void checkAndExpireBeforePagination(String keyword, LocalDateTime fromDate, LocalDateTime toDate, Boolean expired, Boolean deleted) {
+        int effectedRows = cartRepo.checkAndExpireBeforePagination(keyword, fromDate, toDate, expired, deleted);
+        if (effectedRows != 0) {
+            Cache cache = cacheManager.getCache("cartPages");
+            cache.clear();
+        }
+    }
 }

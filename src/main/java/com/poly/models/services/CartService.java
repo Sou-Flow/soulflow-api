@@ -20,4 +20,11 @@ public interface CartService {
             SortOrder sortOrder,
             Integer pageNumber,
             Integer pageSize);
+    void checkAndExpireBeforePagination(
+        String keyword,
+        LocalDateTime fromDate,
+        LocalDateTime toDate,
+        Boolean expired,
+        Boolean deleted
+    );
 }

@@ -51,7 +51,7 @@ public interface DiscountRepository extends JpaRepository<Discount, Long> {
                 AND (:toDate IS NULL OR d.createdDate <= :toDate)
                 AND d.expiredDate <= CURRENT_TIMESTAMP
         """)
-    void checkAndExpireBeforePagination(
+    int checkAndExpireBeforePagination(
     		@Param("keyword") String keyword,
             @Param("fromDate") LocalDateTime fromDate,
             @Param("toDate") LocalDateTime toDate,
@@ -62,10 +62,10 @@ public interface DiscountRepository extends JpaRepository<Discount, Long> {
     @Modifying
     @Transactional
     @Query("UPDATE Discount d SET d.expired = true WHERE d.pk = :pk AND d.expired = false AND d.expiredDate <= CURRENT_TIMESTAMP")
-    void checkAndExpire(@Param("pk") Long pk);
+    int checkAndExpire(@Param("pk") Long pk);
     
     @Modifying
     @Transactional
     @Query("UPDATE Discount d SET d.deleted = true WHERE d.pk = :pk")
-    void softDelete(@Param("pk") Long pk);
+    int softDelete(@Param("pk") Long pk);
 }

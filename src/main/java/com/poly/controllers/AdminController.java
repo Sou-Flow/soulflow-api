@@ -40,7 +40,6 @@ import com.poly.models.responses.DiscountResponse;
 import com.poly.models.responses.OrderResponse;
 import com.poly.models.responses.PageResponse;
 import com.poly.models.responses.PaymentResponse;
-import com.poly.models.responses.ProductImageResponse;
 import com.poly.models.responses.ProductResponse;
 import com.poly.models.responses.ReplyResponse;
 import com.poly.models.services.BaseService;
@@ -171,6 +170,7 @@ public class AdminController extends BaseService {
             @RequestParam(defaultValue = "0") Integer pageNumber,
             @RequestParam(defaultValue = "5") Integer pageSize
     ) {
+        
         return discountService.filterAndPaginateDiscounts(keyword, fromDate, toDate, expired, deleted, sortOrder, pageNumber, pageSize);
     }
 
@@ -327,7 +327,7 @@ public class AdminController extends BaseService {
             @RequestParam(defaultValue = "0") Integer pageNumber,
             @RequestParam(defaultValue = "5") Integer pageSize
 			) {
-		
+		orderService.checkAndExpireBeforePagination(keyword, fromDate, toDate, status, expired, deleted);
 		return orderService.filterAndPaginateOrders(keyword, fromDate, toDate, status, expired, deleted, sortOrder, pageNumber, pageSize);
 	}
 
@@ -360,6 +360,7 @@ public class AdminController extends BaseService {
         @RequestParam(defaultValue = "0") Integer pageNumber,
         @RequestParam(defaultValue = "5") Integer pageSize
     ) {
+        cartService.checkAndExpireBeforePagination(keyword, fromDate, toDate, expired, deleted);
         return cartService.filterAndPaginateCarts(keyword, fromDate, toDate, expired, deleted, sortOrder, pageNumber, pageSize);
     }
 

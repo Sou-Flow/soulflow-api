@@ -54,7 +54,7 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
 				AND (:deleted IS NULL OR ca.deleted = :deleted)
 				AND ca.expiredDate <= CURRENT_TIMESTAMP
 	    """)
-	void checkAndExpireBeforePagination(
+	int checkAndExpireBeforePagination(
 			@Param("keyword") String keyword,
 			@Param("fromDate") LocalDateTime fromDate,
 			@Param("toDate") LocalDateTime toDate,
@@ -65,10 +65,10 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
 	@Modifying
     @Transactional
     @Query("UPDATE Cart ca SET ca.expired = true WHERE ca.pk = :pk AND ca.expired = false AND ca.expiredDate <= CURRENT_TIMESTAMP")
-    void checkAndExpire(@Param("pk") Long pk);
+    int checkAndExpire(@Param("pk") Long pk);
 	
 	@Modifying
     @Transactional
     @Query("UPDATE Cart ca SET ca.deleted = true WHERE ca.pk = :pk")
-    void softDelete(@Param("pk") Long pk);
+    int softDelete(@Param("pk") Long pk);
 }

@@ -21,5 +21,14 @@ public interface OrderService {
             Boolean deleted,
             SortOrder sortOrder,
             Integer pageNumber,
-            Integer pageSize);
+            Integer pageSize
+    );
+    void checkAndExpireBeforePagination(
+        String keyword,
+        LocalDateTime fromDate,
+        LocalDateTime toDate,
+        OrderStatus status,
+        Boolean expired,
+        Boolean deleted
+    );
 }

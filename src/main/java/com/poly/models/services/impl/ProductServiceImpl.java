@@ -22,7 +22,6 @@ import com.poly.models.mappers.ProductMapper;
 import com.poly.models.repositories.ProductRepository;
 import com.poly.models.requests.ProductRequest;
 import com.poly.models.responses.PageResponse;
-import com.poly.models.responses.ProductImageResponse;
 import com.poly.models.responses.ProductResponse;
 import com.poly.models.services.ProductService;
 
@@ -38,8 +37,6 @@ public class ProductServiceImpl implements ProductService {
 	
 	private final ProductMapper productMapper;
 	
-	private final ImageServiceImpl imageService;
-
 	@Override
 	@Transactional
 	@CachePut(value = "productList", key = "#result.pk")

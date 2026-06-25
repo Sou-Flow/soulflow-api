@@ -61,7 +61,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                 AND (:toDate IS NULL OR o.createdDate <= :toDate)
                 AND o.expiredDate <= CURRENT_TIMESTAMP
         """)
-    void checkAndExpireBeforePagination(
+    int checkAndExpireBeforePagination(
     		@Param("keyword") String keyword,
             @Param("fromDate") LocalDateTime fromDate,
             @Param("toDate") LocalDateTime toDate,
@@ -72,10 +72,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Modifying
     @Transactional
     @Query("UPDATE Order o SET o.expired = true WHERE o.pk = :pk AND o.expired = false AND o.expiredDate <= CURRENT_TIMESTAMP")
-    void checkAndExpire(@Param("pk") Long pk);
+    int checkAndExpire(@Param("pk") Long pk);
 
     @Modifying
     @Transactional
     @Query("UPDATE Order o SET o.deleted = true WHERE o.pk = :pk")
-    void softDelete(@Param("pk") Long pk);
+    int softDelete(@Param("pk") Long pk);
 }

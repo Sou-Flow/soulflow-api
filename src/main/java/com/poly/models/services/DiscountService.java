@@ -12,12 +12,20 @@ public interface DiscountService {
 	void softDeleteByPk(Long discountPk);
 	DiscountResponse findByPk(Long discountPk);
 	PageResponse<DiscountResponse> filterAndPaginateDiscounts(
-			String keyword,
-            LocalDateTime fromDate,
-            LocalDateTime toDate,
-            Boolean expired,
-            Boolean deleted,
-            SortOrder sortOrder,
-            Integer pageNumber,
-            Integer pageSize);
+        String keyword,
+        LocalDateTime fromDate,
+        LocalDateTime toDate,
+        Boolean expired,
+        Boolean deleted,
+        SortOrder sortOrder,
+        Integer pageNumber,
+        Integer pageSize
+    );
+    void checkAndExpireBeforePagination(
+        String keyword,
+        LocalDateTime fromDate,
+        LocalDateTime toDate,
+        Boolean expired,
+        Boolean deleted
+    );
 }
