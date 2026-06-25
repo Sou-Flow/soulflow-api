@@ -1,0 +1,90 @@
+package com.poly.models.services.impl;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.poly.models.entities.Order;
+import com.poly.models.enums.OrderStatus;
+import com.poly.models.enums.SortOrder;
+import com.poly.models.mappers.OrderMapper;
+import com.poly.models.repositories.OrderRepository;
+import com.poly.models.requests.OrderRequest;
+import com.poly.models.responses.OrderResponse;
+import com.poly.models.responses.PageResponse;
+import com.poly.models.services.OrderService;
+
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class OrderServiceImpl implements OrderService {
+
+	private final OrderMapper orderMapper;
+	
+    private final OrderRepository orderRepo;
+
+    @Override
+    @Transactional
+    @CachePut(value = "orderList", key = "#result.pk")
+    @CacheEvict(value = "orderPages", allEntries = true)
+    public OrderResponse save(OrderRequest resquest) {
+        Order order = orderMapper.toEntity(resquest);
+        Order saved = orderRepo.save(order);
+        return orderMapper.toResponse(saved);
+    }
+    
+    @Override
+    @Transactional
+    @Caching(evict = {
+    	@CacheEvict(value = "orderList", key = "#orderPk"),
+    	@CacheEvict(value = "orderPages", allEntries = true)
+    })
+    public void softDeleteByPk(Long orderPk) {
+        orderRepo.softDelete(orderPk);
+    }
+
+    @Override
+    @Cacheable(value = "orderList", key = "#orderPk")
+    public OrderResponse findByPk(Long orderPk) {
+        if (orderPk == null) throw new IllegalArgumentException("Can't not find order when pk is null");
+        Order exist = orderRepo.findById(orderPk)
+                .orElseThrow(() -> new EntityNotFoundException("Order not found with Pk: " + orderPk));
+        return orderMapper.toResponse(exist);
+    }
+
+    @Override
+    @Cacheable(value = "orderPages", key = "#keyword + '_' + #fromDate + '_' + #toDate + '_' + #status + '_' + #expired + '_' + #deleted + '_' + #sortOrder + '_' + #pageNumber + '_' + #pageSize")
+    public PageResponse<OrderResponse> filterAndPaginateOrders(
+            String keyword,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
+            OrderStatus status,
+            Boolean expired,
+            Boolean deleted,
+            SortOrder sortOrder,
+            Integer pageNumber,
+            Integer pageSize) {
+    	orderRepo.checkAndExpireBeforePagination(keyword, fromDate, toDate, expired, deleted);
+    	Sort sort = sortOrder == SortOrder.ASC
+	            ? Sort.by("id").ascending()
+	            : Sort.by("id").descending();
+    	Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
+    	Page<Order> page = orderRepo.filterOrders(keyword, fromDate, toDate, status, expired, deleted, pageable);
+    	List<OrderResponse> responses = orderMapper.toResponseList(page.getContent());
+        return new PageResponse<>(page, responses);
+    }
+
+}

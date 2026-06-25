@@ -1,0 +1,18 @@
+package com.poly.models.requests;
+
+import java.util.List;
+
+import com.poly.models.enums.OrderStatus;
+
+import lombok.Data;
+
+@Data
+public class OrderRequest {
+    private Long pk;
+    private String fullname;
+    private String phone;
+    private String address;
+    private OrderStatus status;
+    private Long accountPk;
+    private List<OrderDetailRequest> orderDetailRequests;  
+}
