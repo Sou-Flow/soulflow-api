@@ -71,3 +71,6 @@ logging:
 app:
   cors:
     allowed-origins: ${FRONTEND_URL:http://localhost:3000}
+sepay:
+  webhook:
+    secret: ${SEPAY_SECRET_KEY:}

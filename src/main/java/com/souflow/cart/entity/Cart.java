@@ -2,6 +2,7 @@ package com.souflow.cart.entity;
 
 import com.souflow.account.entity.Account;
 import com.souflow.common.entity.SoftDeletableEntity;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -55,7 +56,7 @@ public class Cart extends SoftDeletableEntity {
   @JoinColumn(name = "account_pk", nullable = false)
   private Account account;
 
-  @OneToMany(mappedBy = "cart")
+  @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
   private List<CartItem> items = new ArrayList<>();
 }

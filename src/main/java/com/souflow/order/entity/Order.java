@@ -3,6 +3,7 @@ package com.souflow.order.entity;
 import com.souflow.account.entity.Account;
 import com.souflow.common.entity.SoftDeletableEntity;
 import com.souflow.payment.entity.Payment;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -68,11 +69,11 @@ public class Order extends SoftDeletableEntity {
   @JoinColumn(name = "account_pk", nullable = false)
   private Account account;
 
-  @OneToMany(mappedBy = "order")
+  @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
   private List<OrderDetail> orderDetails = new ArrayList<>();
 
-  @OneToMany(mappedBy = "order")
+  @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
   private List<Payment> payments = new ArrayList<>();
 }

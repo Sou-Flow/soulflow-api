@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,6 +54,16 @@ public class OrderService {
     return mapToResponse(order);
   }
 
+  @Transactional(readOnly = true)
+  public OrderResponse findByCode(String code) {
+    Order order =
+        orderRepository
+            .findByBusinessIdAndDeletedFalse(code)
+            .orElseThrow(() -> new ResourceNotFoundException("Don hang khong ton tai"));
+    return mapToResponse(order);
+  }
+
+  @CacheEvict(value = "products", allEntries = true)
   @Transactional
   public OrderResponse createFromCart(CreateOrderRequest request, Account account) {
     log.info(
@@ -77,19 +88,32 @@ public class OrderService {
           ErrorCode.BAD_REQUEST, "Gio hang trong, khong the dat hang", HttpStatus.BAD_REQUEST);
     }
 
-    for (CartItem item : cart.getItems()) {
-      Product product = item.getProduct();
+    java.util.List<CartItem> sortedItems = new java.util.ArrayList<>(cart.getItems());
+    sortedItems.sort(java.util.Comparator.comparing(item -> item.getProduct().getId()));
+
+    java.util.Map<Long, Product> lockedProducts = new java.util.HashMap<>();
+
+    for (CartItem item : sortedItems) {
+      Product product =
+          productRepository
+              .findByIdForUpdate(item.getProduct().getId())
+              .orElseThrow(() -> new ResourceNotFoundException("San pham khong ton tai"));
+
       if (product.getQuantity() < item.getQuantity()) {
         throw new BusinessException(
             ErrorCode.INSUFFICIENT_STOCK,
             "San pham " + product.getNameVn() + " khong du ton kho",
-            HttpStatus.BAD_REQUEST);
+            HttpStatus.CONFLICT);
       }
+      lockedProducts.put(product.getId(), product);
     }
+
+    String orderStatus =
+        "SEPAY".equalsIgnoreCase(request.getPaymentMethod()) ? "WAITING_PAYMENT" : STATUS_PENDING;
 
     Order order =
         Order.builder()
-            .businessId(IdGenerator.generateBusinessId())
+            .businessId(IdGenerator.generateOrderId())
             .fullname(request.getFullname())
             .phoneNumber(request.getPhoneNumber())
             .address(request.getAddress())
@@ -97,13 +121,13 @@ public class OrderService {
             .createdDate(LocalDateTime.now())
             .expiredDate(LocalDateTime.now().plusHours(ORDER_EXPIRY_HOURS))
             .expired(false)
-            .status(STATUS_PENDING)
+            .status(orderStatus)
             .account(account)
             .orderDetails(new ArrayList<>())
             .build();
 
     for (CartItem cartItem : cart.getItems()) {
-      Product product = cartItem.getProduct();
+      Product product = lockedProducts.get(cartItem.getProduct().getId());
       product.setQuantity(product.getQuantity() - cartItem.getQuantity());
       product.setSales(product.getSales() + cartItem.getQuantity());
       productRepository.save(product);
@@ -127,12 +151,52 @@ public class OrderService {
     return mapToResponse(orderRepository.save(order));
   }
 
+  @CacheEvict(
+      value = "products",
+      allEntries = true,
+      condition = "#status.equalsIgnoreCase('CANCELED')")
   @Transactional
   public OrderResponse updateStatus(Long id, String status) {
     Order order =
         orderRepository
             .findByIdAndDeletedFalse(id)
             .orElseThrow(() -> new ResourceNotFoundException("Don hang khong ton tai"));
+    return performStatusUpdate(order, status);
+  }
+
+  @CacheEvict(
+      value = "products",
+      allEntries = true,
+      condition = "#status.equalsIgnoreCase('CANCELED')")
+  @Transactional
+  public OrderResponse updateStatusByCode(String code, String status) {
+    Order order =
+        orderRepository
+            .findByBusinessIdAndDeletedFalse(code)
+            .orElseThrow(() -> new ResourceNotFoundException("Don hang khong ton tai"));
+    return performStatusUpdate(order, status);
+  }
+
+  private OrderResponse performStatusUpdate(Order order, String status) {
+    if ("CANCELED".equalsIgnoreCase(status) && !"CANCELED".equalsIgnoreCase(order.getStatus())) {
+      log.info("Order {} is canceled. Restoring inventory...", order.getBusinessId());
+
+      List<OrderDetail> sortedDetails = new ArrayList<>(order.getOrderDetails());
+      sortedDetails.sort(java.util.Comparator.comparing(detail -> detail.getProduct().getId()));
+
+      for (OrderDetail detail : sortedDetails) {
+        Product product =
+            productRepository.findByIdForUpdate(detail.getProduct().getId()).orElse(null);
+        if (product != null) {
+          product.setQuantity(product.getQuantity() + detail.getQuantity());
+          product.setSales(Math.max(0, product.getSales() - detail.getQuantity()));
+          productRepository.save(product);
+          log.info(
+              "Restored {} items to product {}", detail.getQuantity(), product.getBusinessId());
+        }
+      }
+    }
+
     order.setStatus(status);
     return mapToResponse(orderRepository.save(order));
   }
