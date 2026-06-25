@@ -20,4 +20,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
       "SELECT o FROM Order o WHERE o.account.id = :accountId "
           + "AND o.deleted = false ORDER BY o.createdDate DESC")
   List<Order> findOrdersByAccountId(@Param("accountId") Long accountId);
+
+  Optional<Order> findByBusinessIdAndDeletedFalse(String businessId);
 }

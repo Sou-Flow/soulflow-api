@@ -47,6 +47,15 @@ public class ProductService {
     return mapToResponse(product);
   }
 
+  @Transactional(readOnly = true)
+  public ProductResponse findByCode(String code) {
+    Product product =
+        productRepository
+            .findByBusinessIdAndDeletedFalse(code)
+            .orElseThrow(() -> new ResourceNotFoundException("San pham khong ton tai"));
+    return mapToResponse(product);
+  }
+
   @CacheEvict(value = "products", allEntries = true)
   @Transactional
   public ProductResponse create(ProductRequest request) {
@@ -108,6 +117,12 @@ public class ProductService {
   public Product getEntityById(Long id) {
     return productRepository
         .findByIdAndDeletedFalse(id)
+        .orElseThrow(() -> new ResourceNotFoundException("San pham khong ton tai"));
+  }
+
+  public Product getEntityByIdForUpdate(Long id) {
+    return productRepository
+        .findByIdForUpdate(id)
         .orElseThrow(() -> new ResourceNotFoundException("San pham khong ton tai"));
   }
 
