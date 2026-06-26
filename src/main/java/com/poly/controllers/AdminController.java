@@ -1,6 +1,5 @@
 package com.poly.controllers;
 
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -226,14 +225,15 @@ public class AdminController extends BaseService {
 			@RequestParam(required = false) BigDecimal maxPrice, 
 			@RequestParam(required = false) LocalDateTime fromDate,
 			@RequestParam(required = false) LocalDateTime toDate,
-			@RequestParam(required = false) Long categoryPk, 
+			@RequestParam(required = false) Long categoryPk,
+            @RequestParam(defaultValue = "false") Boolean customised, 
 			@RequestParam(defaultValue = "false") Boolean available,
 			@RequestParam(defaultValue = "false") Boolean deleted,
 			@RequestParam(defaultValue = "DESC") SortOrder sortOrder, 
 			@RequestParam(defaultValue = "0") Integer pageNumber, 
 			@RequestParam(defaultValue = "5") Integer pageSize
 	) {
-        return productService.filterAndPaginateProducts(keyword, minPrice, maxPrice, categoryPk, available, deleted, fromDate, toDate, sortOrder, pageNumber, pageSize);
+        return productService.filterAndPaginateProducts(keyword, minPrice, maxPrice, categoryPk, customised, available, deleted, fromDate, toDate, sortOrder, pageNumber, pageSize);
 	}
 
     /* reply */
@@ -302,7 +302,16 @@ public class AdminController extends BaseService {
 
     @PostMapping("/order")
 	OrderResponse save(@RequestBody OrderRequest request) {
-		return orderService.save(request);
+
+		OrderResponse orderResponse = orderService.save(request);
+
+        Integer effectedRows = orderService.markOrderAsPaidIfFullyPaid(Long.valueOf(orderResponse.getPk()));
+
+        if (effectedRows != 0) {
+            orderResponse = orderService.findByPk(Long.valueOf(orderResponse.getPk()));
+        }
+
+        return orderResponse;
 	}
 	
 	@DeleteMapping("/order/{pk}")
@@ -369,12 +378,5 @@ public class AdminController extends BaseService {
     @PostMapping("/payment")
     PaymentResponse save(@RequestBody PaymentRequest request) {
         return paymentService.save(request);
-    }
-
-    /* image storing */
-
-    @GetMapping("/download/image")
-    InputStream downloadImage(String imageName) throws Exception {
-        return imageService.download(imageName);
-    }
+    }   
 }

@@ -31,4 +31,6 @@ public interface OrderService {
         Boolean expired,
         Boolean deleted
     );
+
+    Integer markOrderAsPaidIfFullyPaid(Long orderPk);
 }

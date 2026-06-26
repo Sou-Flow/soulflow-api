@@ -11,5 +11,7 @@ public class PaymentRequest {
 
     private BigDecimal amount;
 
+    private Boolean paid;
+
     private Long orderPk;
 }

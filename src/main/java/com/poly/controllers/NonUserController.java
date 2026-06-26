@@ -1,13 +1,11 @@
 package com.poly.controllers;
 
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -80,17 +78,14 @@ public class NonUserController  {
 			@RequestParam(required = false) LocalDateTime fromDate,
 			@RequestParam(required = false) LocalDateTime toDate,
 			@RequestParam(required = false) Long categoryPk, 
+            @RequestParam(defaultValue = "false") Boolean customised,
 			@RequestParam(defaultValue = "false") Boolean available,
 			@RequestParam(defaultValue = "false") Boolean deleted,
 			@RequestParam(defaultValue = "DESC") SortOrder sortOrder, 
 			@RequestParam(defaultValue = "0") Integer pageNumber, 
 			@RequestParam(defaultValue = "5") Integer pageSize
 	) {
-        return adminController.filterAndPaginateProducts(keyword, minPrice, maxPrice, fromDate, toDate, categoryPk, available, deleted, sortOrder, pageNumber, pageSize);
+        return adminController.filterAndPaginateProducts(keyword, minPrice, maxPrice, fromDate, toDate, categoryPk, customised, available, deleted, sortOrder, pageNumber, pageSize);
 	}
 
-    @GetMapping("/download/image/{imageName}")
-    InputStream dowloadImage(@PathVariable String imageName) throws Exception {
-        return adminController.downloadImage(imageName);
-    }
 }

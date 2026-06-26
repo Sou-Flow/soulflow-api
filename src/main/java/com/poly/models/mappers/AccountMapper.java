@@ -20,7 +20,7 @@ import com.poly.models.services.ImageService;
 
 import jakarta.persistence.EntityNotFoundException;
 
-@Mapper(componentModel = "spring", uses = {OrderMapper.class, CartMapper.class, RoleMapper.class})
+@Mapper(componentModel = "spring", uses = {OrderMapper.class, CartMapper.class, RoleMapper.class, ChatMessageMapper.class})
 public abstract class AccountMapper {
 	
 	@Autowired
@@ -37,7 +37,8 @@ public abstract class AccountMapper {
 	@Mapping(target = "credentialExpired", 		ignore = true)
 	@Mapping(target = "credentialExpiredDate", 	ignore = true)
 	@Mapping(target = "carts", 					ignore = true)
-	@Mapping(target = "orders", 				ignore = true)			
+	@Mapping(target = "orders", 				ignore = true)
+	@Mapping(target = "chatMessages",			ignore = true)			
 	@Mapping(target = "role",					source = "roleRequest")
 	public abstract Account toEntity(AccountRequest request); 
 	
@@ -47,6 +48,7 @@ public abstract class AccountMapper {
 	@Mapping(target = "url",						ignore = true)
 	@Mapping(target = "cartResponses", 				ignore = true)
 	@Mapping(target = "orderResponses", 			ignore = true)
+	@Mapping(target = "chatMessageResponses", 		source = "chatMessages")
 	@Named("basicResponse")
 	public abstract AccountResponse toBasicResponse(Account account);
 
@@ -54,6 +56,7 @@ public abstract class AccountMapper {
 	@Mapping(target = "roleResponse", 			source = "role")
 	@Mapping(target = "cartResponses", 			source = "carts")
 	@Mapping(target = "orderResponses", 		source = "orders")
+	@Mapping(target = "chatMessageResponses",	source = "chatMessages")
 	@Named("detailedResponse")
 	public abstract AccountResponse toDetailResponse(Account account);
 
@@ -61,7 +64,7 @@ public abstract class AccountMapper {
 	public abstract List<AccountResponse> toBasicResponseList(List<Account> accounts);
 
 	@IterableMapping(qualifiedByName = "detailedResponse")
-	public abstract List<AccountResponse> toDetailedResponseList(List<Account> account);
+	public abstract List<AccountResponse> toDetailedResponseList(List<Account> account); 
 	
 	@AfterMapping
     protected void afterToEntity(AccountRequest request, @MappingTarget Account account) {

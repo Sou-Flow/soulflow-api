@@ -46,8 +46,13 @@ public class JwtFilter extends OncePerRequestFilter {
         //validate token
         final String authorization= request.getHeader("Authorization");
         final String language = request.getHeader("Accept-Language");
-        System.out.println(authorization);
-        System.out.println("Lang" + language);
+
+        if (authorization == null) {
+            System.out.println("No token");
+        } else {
+            System.out.println("Token: " + authorization.substring(7));
+        }
+        System.out.println("Lang: " + language);
 
         if (authorization != null && authorization.startsWith("Bearer ")) {
             String token = authorization.substring(7);

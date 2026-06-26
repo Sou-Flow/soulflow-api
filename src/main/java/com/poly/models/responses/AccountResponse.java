@@ -36,4 +36,6 @@ public class AccountResponse {
 	private List<OrderResponse> orderResponses;
 	
 	private List<CartResponse> cartResponses;
+
+	private List<ChatMessageResponse> chatMessageResponses;
 }

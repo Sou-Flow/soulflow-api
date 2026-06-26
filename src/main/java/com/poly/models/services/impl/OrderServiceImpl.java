@@ -91,17 +91,24 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public void checkAndExpireBeforePagination(String keyword,
+    public void checkAndExpireBeforePagination(
+            String keyword,
             LocalDateTime fromDate,
             LocalDateTime toDate,
             OrderStatus status,
             Boolean expired,
             Boolean deleted
-        ) {
+    ) {
         int effectedRows = orderRepo.checkAndExpireBeforePagination(keyword, fromDate, toDate, expired, deleted);
         if (effectedRows != 0) {
             Cache cache = cacheManager.getCache("orderPages");
             cache.clear();
         }
+    }
+
+    @Override
+    public Integer markOrderAsPaidIfFullyPaid(Long orderPk) {
+        
+        return orderRepo.markOrderAsPaidIfFullyPaid(orderPk);
     }
 }

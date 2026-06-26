@@ -32,7 +32,7 @@ public abstract class ProductMapper {
 	protected LocaleUtil localeUtil; 
 
 	@Mapping(target = "code", 				ignore = true)
-	@Mapping(target = "createdDate", 		ignore = true)
+	@Mapping(target = "createdDate", 		ignore = true) 
 	@Mapping(target = "sales", 				ignore = true)
 	@Mapping(target = "category", 			ignore = true)
 	@Mapping(target = "comments", 			ignore = true)

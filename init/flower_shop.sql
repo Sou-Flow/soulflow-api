@@ -59,6 +59,7 @@ CREATE TABLE products (
     created_date DATETIME2,
     available BIT NOT NULL DEFAULT 1,
 	quantity INT NOT NULL DEFAULT 5,
+    customised BIT NOT NULL,
 	sales INT NOT NULL DEFAULT 0,
     del_if BIT NOT NULL DEFAULT 0,
 
@@ -124,6 +125,7 @@ GO
 
 CREATE TABLE payments (
     pk BIGINT IDENTITY(1,1) PRIMARY KEY,
+    paid BIT NOT NULL,
     amount DECIMAL(18,2) NOT NULL,
     payment_date DATETIME2 NOT NULL,
 
@@ -132,7 +134,8 @@ CREATE TABLE payments (
         FOREIGN KEY (order_pk)
         REFERENCES orders(pk)
 
-) 
+);
+GO
 
 CREATE TABLE carts (
     pk BIGINT IDENTITY(1,1) PRIMARY KEY,
@@ -225,6 +228,19 @@ CREATE TABLE replies (
         REFERENCES accounts(pk)
 );
 GO
+
+CREATE TABLE chat_messages (
+    pk BIGINT IDENTITY(1,1) PRIMARY KEY,
+    content NVARCHAR(500) NOT NULL,
+    created_date DATETIME2,
+
+    account_pk BIGINT NOT NULL,
+    CONSTRAINT fk_chat_messages_accounts
+        FOREIGN KEY (account_pk)
+        REFERENCES accounts(pk)
+);
+GO
+
 
 INSERT INTO roles (
     code,

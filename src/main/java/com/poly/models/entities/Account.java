@@ -74,4 +74,6 @@ public class Account {
     @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
     private List<Cart> carts = new ArrayList<>();
 
+    @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
+    private List<ChatMessage> chatMessages = new ArrayList<>();
 }

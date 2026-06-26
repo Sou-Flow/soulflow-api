@@ -30,6 +30,8 @@ public class Payment {
 
     private BigDecimal amount;
 
+    private Boolean paid;
+
     @Column(name = "payment_date")
     private LocalDateTime paymentDate;
 

@@ -24,6 +24,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         WHERE
             (:deleted IS NULL OR p.deleted = :deleted)
             AND (:available IS NULL OR p.available = :available)
+            AND (:customised IS NULL OR p.customised = :customised)
             AND (:categoryPk IS NULL OR p.category.pk = :categoryPk)
             AND (:minPrice IS NULL OR p.price >= :minPrice)
             AND (:maxPrice IS NULL OR p.price <= :maxPrice)
@@ -40,6 +41,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("maxPrice") BigDecimal maxPrice,
             @Param("categoryPk") Long categoryPk,
             @Param("keyword") String keyword,
+            @Param("customised") Boolean customised,
             @Param("available") Boolean available,
             @Param("deleted") Boolean deleted,
             @Param("fromDate") LocalDateTime fromDate,
@@ -51,4 +53,20 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Transactional
     @Query("UPDATE Product p SET p.deleted = true WHERE p.pk = :pk")
     void softDelete(@Param("pk") Long pk);
+
+    @Modifying
+	@Transactional
+	@Query("UPDATE Product p SET p.quantity = :quantity WHERE p.pk = :pk")
+	int updateQuantity(@Param("pk") Long pk, @Param("quantity") Integer quantity);
+
+    @Modifying
+	@Transactional
+	@Query("""
+		UPDATE Product p
+		SET p.quantity = p.quantity - :amount,
+		    p.available = CASE WHEN (p.quantity - :amount) = 0 THEN false ELSE p.available END
+		WHERE p.pk = :pk
+		AND p.quantity >= :amount
+	""")
+	int decreaseQuantity(@Param("pk") Long pk, @Param("amount") Integer amount); 
 }

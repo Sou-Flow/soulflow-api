@@ -61,6 +61,8 @@ public class Product {
 
     private Integer quantity;
 
+    private Boolean customised;
+
     private Long sales;
     
     @Column(name = "del_if")

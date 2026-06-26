@@ -34,6 +34,7 @@ import com.poly.models.responses.AccountResponse;
 import com.poly.models.responses.AuthResponse;
 import com.poly.models.responses.PageResponse;
 import com.poly.models.services.AccountService;
+import com.poly.models.services.ImageService;
 import com.poly.utils.JwtUtil;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -50,10 +51,12 @@ public class AccountServiceImpl implements AccountService {
 	private final AccountMapper accountMapper;
 	private final AuthenticationManager authenticationManager;
 	private final JwtUtil jwtUtil;
+	private final ImageService imageService;
 	
 	@Override
 	@Transactional
 	public AuthResponse login(AuthRequest authRequest) {
+		// TODO Auto-generated method stub
 		try {
 			// Check username and password under the hood
 			authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
@@ -72,19 +75,27 @@ public class AccountServiceImpl implements AccountService {
 		String token = jwtUtil.generateToken(account.getUsername(), account.getRole().getCode().name());
 		
 		// Send it back to frontend
-		return AuthResponse.builder()
+		try {
+			return AuthResponse.builder()
 				.token(token)
 				.pk(String.valueOf(account.getPk()))
 				.fullname(account.getFullname())
 				.email(account.getEmail())
 				.photo(account.getPhoto())
+				.url(imageService.getPublicUrl(account.getPhoto()))
 				.build();
+		} catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
+			return null;
+		}
+
 	}
 	
 	@Override
 	@Transactional
 	public AuthResponse loginWithGoogle(GoogleTokenDTO googleToken) {
-
+		// TODO Auto-generated method stub 
         try {
             // 1. Verify Google token
             GoogleIdToken.Payload payload = googleAuthService.verify(googleToken.get());
@@ -168,6 +179,7 @@ public class AccountServiceImpl implements AccountService {
 	@Override
 	@Cacheable(value = "accountList", key = "#email")
 	public AccountResponse findByEmail(String email) {
+		// TODO Auto-generated method stub
 		Account exist = accountRepo.findByEmail(email)
 				.orElseThrow(() -> new EntityNotFoundException("Account not found with email: " + email));
 		return accountMapper.toBasicResponse(exist);
@@ -195,6 +207,7 @@ public class AccountServiceImpl implements AccountService {
 	@Override
 	@Cacheable(value = "accountList", key = "#email")
 	public AccountResponse findAccountDetailByEmail(String email) {
+		// TODO Auto-generated method stub
 		Account exist = accountRepo.findByEmail(email)
 				.orElseThrow(() -> new EntityNotFoundException("Account not found with email: " + email));
 		return accountMapper.toDetailResponse(exist);

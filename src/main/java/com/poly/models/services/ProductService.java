@@ -19,11 +19,14 @@ public interface ProductService {
 			BigDecimal minPrice, 
 			BigDecimal maxPrice, 
 			Long categoryPk, 
+			Boolean customised,
 			Boolean available,
 			Boolean deleted,
 			LocalDateTime fromDate,
 			LocalDateTime toDate,
 			SortOrder sortOrder, 
 			Integer pageNumber, 
-			Integer pageSize);
+			Integer pageSize
+	);
+	Integer decreaseQuantity(Long pk, Integer amount);
 }

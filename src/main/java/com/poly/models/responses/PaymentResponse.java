@@ -7,6 +7,8 @@ public class PaymentResponse {
 
     private String pk;
 
+    private String paid;
+
     private String amount;
 
     private String paymentDate;

@@ -20,15 +20,12 @@ public class CacheWarmupConfig {
 
     private final CacheManager cacheManager;
     
-    private final PasswordEncoder pwEncoder;
-
     private final ImageService imageService;
 
     @EventListener(ApplicationReadyEvent.class)
     public void warmupCache() {
 
         System.out.println("Cache manager initialized: " + cacheManager.getClass().getSimpleName());
-        System.out.println(pwEncoder.encode("123456"));
 
         System.out.println("Image Url:");
         try {

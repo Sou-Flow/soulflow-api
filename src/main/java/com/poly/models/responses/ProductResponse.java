@@ -25,6 +25,8 @@ public class ProductResponse {
 	
 	private String createdDate;
 	
+	private String customised;
+
 	private String available;
 	
 	private String quantity;

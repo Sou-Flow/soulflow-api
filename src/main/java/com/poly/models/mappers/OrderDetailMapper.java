@@ -53,6 +53,12 @@ public abstract class OrderDetailMapper {
 		Long productPk = request.getProductPk();
 		Product product = productRepo.findById(productPk)
 			.orElseThrow(() -> new EntityNotFoundException("Can't found product with PK: " + productPk));
+		
+		Integer effectedRows = productRepo.decreaseQuantity(request.getProductPk(), request.getQuantity());
+		if (effectedRows == 0) {
+			throw new RuntimeException("Quantity is not enough in stock");
+		}
+
 		orderDetail.setNameVn(product.getNameVn());
 		orderDetail.setNameEng(product.getNameEng());
 		orderDetail.setPrice(product.getPrice());

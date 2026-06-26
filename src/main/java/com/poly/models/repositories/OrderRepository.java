@@ -78,4 +78,19 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Transactional
     @Query("UPDATE Order o SET o.deleted = true WHERE o.pk = :pk")
     int softDelete(@Param("pk") Long pk);
+
+    @Modifying
+    @Transactional
+    @Query(value = """
+        UPDATE orders o
+        SET status = 'PAID'
+        WHERE o.pk = :orderPk
+        AND (
+            SELECT COALESCE(SUM(p.amount), 0)
+            FROM payments p
+            WHERE p.order_pk = :orderPk
+            AND p.paid = true
+        ) >= o.total
+    """, nativeQuery = true)
+    int markOrderAsPaidIfFullyPaid(@Param("orderPk") Long orderPk);
 }

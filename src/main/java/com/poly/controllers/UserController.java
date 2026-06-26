@@ -84,11 +84,11 @@ public class UserController {
         return adminController.findCommentByPk(pk);
     }
 
-
     /* order */
 
     @PostMapping("/order")
 	OrderResponse saveOrder(@RequestBody OrderRequest request) {
+        request.setStatus(OrderStatus.PENDING);
         return adminController.save(request);
     }
 	
@@ -113,10 +113,9 @@ public class UserController {
             @RequestParam(defaultValue = "DESC") SortOrder sortOrder,
             @RequestParam(defaultValue = "0") Integer pageNumber,
             @RequestParam(defaultValue = "5") Integer pageSize
-			) {
+	) {
         return adminController.filterAndPaginateOrders(keyword, fromDate, toDate, status, expired, deleted, sortOrder, pageNumber, pageSize);
     }
-
 
     /* payment */
 

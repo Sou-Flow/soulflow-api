@@ -12,6 +12,7 @@ public class ProductRequest {
 	private String descriptionVn;
 	private String descriptionEng;
 	private BigDecimal price;
+	private Boolean customised;
 	private Boolean available;
 	private Integer quantity;
 	private Long categoryPk;

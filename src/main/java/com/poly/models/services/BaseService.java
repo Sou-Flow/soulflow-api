@@ -3,6 +3,8 @@ package com.poly.models.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.poly.models.entities.ChatMessage;
+
 @Component
 public abstract class BaseService {
 
@@ -39,4 +41,6 @@ public abstract class BaseService {
     @Autowired
     public PaymentService paymentService;
 
+    @Autowired
+    public ChatMessageService chatMessageService;
 }

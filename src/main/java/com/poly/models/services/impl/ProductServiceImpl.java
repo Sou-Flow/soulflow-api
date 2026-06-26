@@ -81,12 +81,13 @@ public class ProductServiceImpl implements ProductService {
 	}
 
 	@Override
-    @Cacheable(value = "productPages", key = "#minPrice + '_' + #maxPrice + '_' + #categoryPk + '_' + #keyword + '_' + #available + '_' + #deleted + '_' + #fromDate + '_' + #toDate + '_' + #sortOrder + '_' + #pageNumber + '_' + #pageSize")
+    @Cacheable(value = "productPages", key = "#minPrice + '_' + #maxPrice + '_' + #categoryPk + '_' + #keyword + '_' + #customised + '_' + #available + '_' + #deleted + '_' + #fromDate + '_' + #toDate + '_' + #sortOrder + '_' + #pageNumber + '_' + #pageSize")
 	public PageResponse<ProductResponse> filterAndPaginateProducts(
 			String keyword, 
 			BigDecimal minPrice,
 			BigDecimal maxPrice,
 			Long categoryPk,
+			Boolean customised,
 			Boolean available,
 			Boolean deleted,
 			LocalDateTime fromDate,
@@ -105,8 +106,12 @@ public class ProductServiceImpl implements ProductService {
 		};
 		
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
-		Page<Product> page = productRepo.filterProducts(minPrice, maxPrice, categoryPk, keyword, available, deleted, fromDate, toDate, pageable);
+		Page<Product> page = productRepo.filterProducts(minPrice, maxPrice, categoryPk, keyword, customised, available, deleted, fromDate, toDate, pageable);
 		List<ProductResponse> responses = productMapper.toBasicResponseList(page.getContent());
         return new PageResponse<>(page, responses);
+
     }
+	public Integer decreaseQuantity(Long pk, Integer amount) {
+		return productRepo.decreaseQuantity(pk, amount);
+	}
 }
