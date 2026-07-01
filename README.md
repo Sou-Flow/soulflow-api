@@ -1,250 +1,61 @@
-# Flower Shop Backend API
+# FlowerShop API (SoulFlow)
 
-Production-ready REST API for the Soulflow Flower Shop e-commerce platform. Built with **Java 21**, **Spring Boot 3.5**, **Spring Data JPA**, **Spring Security (JWT)**, **Redis**, and **SQL Server**.
+Đây là mã nguồn Backend API cho ứng dụng thương mại điện tử FlowerShop (SoulFlow). Hệ thống được xây dựng bằng Spring Boot, cung cấp một API RESTful mạnh mẽ, dễ mở rộng và bảo mật cao để quản lý cửa hàng hoa trực tuyến.
 
-## Architecture
+## Công nghệ sử dụng (Tech Stack)
 
-This project follows a **Package-by-Feature** layout. Each domain module owns its entity, repository, service, controller, and DTOs.
+- **Ngôn ngữ:** Java 17
+- **Framework:** Spring Boot 3.3.5
+- **Cơ sở dữ liệu (Database):** Microsoft SQL Server
+- **Bộ nhớ đệm (Caching):** Redis (Spring Data Redis)
+- **Bảo mật (Security):** Spring Security + JWT, đăng nhập Google OAuth2
+- **Lưu trữ file:** MinIO (Object Storage)
+- **Mapping Data:** MapStruct
+- **Realtime:** WebSockets (Spring WebSocket)
 
-```
-com.souflow
-├── FlowershopApplication.java       # Entry point
-├── config/                          # Security, Redis, JWT properties
-├── common/                          # Shared DTOs, exceptions, utilities
-├── security/                        # JWT filter, UserDetails, JwtService
-├── account/                         # Auth (login/register), accounts, roles
-├── category/                        # Product categories
-├── product/                         # Products & product images
-├── cart/                            # Shopping carts & cart items
-├── order/                           # Orders & order details
-├── payment/                         # Payment records
-├── discount/                        # Discounts & product-discount links
-└── comment/                         # Product comments & replies
-```
+## Các tính năng chính
 
-Each feature module follows **Controller → Service → Repository**:
+- **Xác thực & Phân quyền:** Đăng nhập bảo mật bằng JWT và tích hợp Google OAuth2. Phân quyền truy cập rõ ràng giữa User và Admin.
+- **Quản lý Sản phẩm:** Hỗ trợ đầy đủ các thao tác CRUD cho sản phẩm (hoa), danh mục và theo dõi số lượng tồn kho.
+- **Xử lý Đơn hàng:** Quản lý giỏ hàng, thanh toán và theo dõi đơn hàng.
+- **Cập nhật Đơn hàng Realtime:** Sử dụng WebSockets để bắn thông báo trạng thái đơn hàng theo thời gian thực xuống Client (cả User và Admin) mỗi khi có thay đổi.
+- **Tích hợp Thanh toán:** Tích hợp webhook của SePay để tự động cập nhật trạng thái đơn hàng khi khách hàng chuyển khoản ngân hàng thành công.
+- **Hệ thống Caching:** Tối ưu hóa hiệu năng bằng cách dùng Redis để cache danh sách sản phẩm, danh sách đơn hàng và các truy vấn thường xuyên.
+- **Bình luận & Đánh giá:** Người dùng có thể để lại bình luận và đánh giá về sản phẩm.
 
-| Layer      | Responsibility                                      |
-|------------|-----------------------------------------------------|
-| Controller | HTTP mapping, validation, standardized responses    |
-| Service    | Business logic, transactions                        |
-| Repository | Data access via Spring Data JPA                     |
+## Cập nhật gần đây
 
-## Tech Stack
+- **Sửa lỗi (Bug Fix):** Đã khắc phục sự cố trong `OrderMapper` gây ra lỗi `DataIntegrityViolationException` khi cập nhật trạng thái đơn hàng do ánh xạ sai cột `del_if`.
+- **Đồng bộ Realtime:** Đã triển khai tính năng gửi thông báo qua WebSocket (vào kênh `/topic/order.{mã_đơn_hàng}` và `/topic/user.notifications.{username}`). Tính năng này giúp giao diện của khách hàng tự động cập nhật ngay lập tức khi Admin thay đổi trạng thái đơn hàng mà không cần phải tải lại trang (F5).
 
-| Component        | Technology                          |
-|------------------|-------------------------------------|
-| Runtime          | Java 21                             |
-| Framework        | Spring Boot 3.5.14                  |
-| ORM              | Spring Data JPA / Hibernate         |
-| Database         | Microsoft SQL Server                |
-| Cache            | Redis (Spring Cache)                |
-| Security         | Spring Security + JWT (jjwt 0.12)   |
-| API Docs         | Springdoc OpenAPI (Swagger UI)      |
-| Env config       | `.env` via Spring `config.import`   |
+## Hướng dẫn cài đặt và chạy (Getting Started)
 
-## Prerequisites
-
-- JDK 21
-- Maven 3.9+ (or use `./mvnw`)
-- SQL Server (local or remote)
+### Yêu cầu hệ thống
+- JDK 17
+- Microsoft SQL Server
 - Redis Server
-- Git
+- MinIO Server
+- Maven (hoặc dùng `mvnw` có sẵn trong project)
 
-## Setup Instructions
+### Cách chạy ứng dụng
+1. **Clone mã nguồn về máy.**
+2. **Cấu hình Môi trường:** Tạo hoặc cập nhật file `.env` (hoặc `application.properties`) với các thông tin đăng nhập database, Redis, MinIO và Google OAuth2 (bạn có thể tham khảo từ file `.env.example`).
+3. **Chạy Project:**
+   Bạn có thể dùng câu lệnh sau:
+   ```bash
+   ./mvnw.cmd spring-boot:run
+   ```
+   Hoặc chạy bằng Docker Compose (nếu đã config sẵn):
+   ```bash
+   docker-compose up -d
+   ```
+4. API sẽ chạy tại địa chỉ: `http://localhost:8080`.
 
-### 1. Clone and configure environment
+## Tài liệu API (API Documentation)
 
-```bash
-git clone <repository-url>
-cd soulflow-api
-cp .env.example .env
-```
+- **API dành cho User:** `/user/**` (Yêu cầu phải đăng nhập)
+- **API dành cho Admin:** `/admin/**` (Yêu cầu quyền Admin)
+- **WebSockets:** Endpoint để kết nối là `/ws`. Các kênh (topics) bao gồm `/topic/admin.notifications`, `/topic/user.notifications.{username}`, và `/topic/order.{code}`.
 
-Edit `.env` with your credentials:
-
-```env
-SERVER_PORT=8080
-DB_HOST=localhost
-DB_PORT=1433
-DB_NAME=flower_shop
-DB_USERNAME=sa
-DB_PASSWORD=your_password
-JWT_SECRET=your-secure-secret-key-minimum-32-characters
-JWT_EXPIRATION_MS=86400000
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-JPA_SHOW_SQL=false
-```
-
-### 2. Create the database
-
-Run the provided SQL schema script against SQL Server to create the `flower_shop` database and all tables.
-
-Then seed required roles:
-
-```bash
-# Run sql/seed-roles.sql in SSMS or sqlcmd
-sqlcmd -S localhost -U sa -P your_password -i sql/seed-roles.sql
-```
-
-Required roles: `ADMIN`, `STAFF`, `CUSTOMER` (registration assigns `CUSTOMER` by default).
-
-### 3. Start Redis
-
-```bash
-redis-server
-```
-
-### 4. Run the application
-
-```bash
-./mvnw spring-boot:run
-```
-
-API base URL: `http://localhost:8080`  
-Swagger UI: `http://localhost:8080/swagger-ui.html`
-
-## Environment Variables
-
-| Variable            | Description                     | Default        |
-|---------------------|---------------------------------|----------------|
-| `SERVER_PORT`       | HTTP port                       | `8080`         |
-| `DB_HOST`           | SQL Server host                 | `localhost`    |
-| `DB_PORT`           | SQL Server port                 | `1433`         |
-| `DB_NAME`           | Database name                   | `flower_shop`  |
-| `DB_USERNAME`       | Database username               | `sa`           |
-| `DB_PASSWORD`       | Database password               | *(required)*   |
-| `JWT_SECRET`        | JWT signing secret              | *(change me)*  |
-| `JWT_EXPIRATION_MS` | Token lifetime in milliseconds  | `86400000`     |
-| `REDIS_HOST`        | Redis host                      | `localhost`    |
-| `REDIS_PORT`        | Redis port                      | `6379`         |
-| `REDIS_PASSWORD`    | Redis password (optional)       | empty          |
-| `JPA_SHOW_SQL`      | Log SQL statements              | `false`        |
-
-## API Response Format
-
-All endpoints return a standardized envelope:
-
-**Success:**
-```json
-{
-  "timestamp": "2026-06-15T10:30:00",
-  "status": 200,
-  "message": "Lay danh sach san pham thanh cong",
-  "data": { }
-}
-```
-
-**Error:**
-```json
-{
-  "timestamp": "2026-06-15T10:30:00",
-  "status": 404,
-  "errorCode": "RESOURCE_NOT_FOUND",
-  "message": "San pham khong ton tai"
-}
-```
-
-## Core API Flows
-
-### Authentication Flow
-
-```
-POST /api/auth/register  →  Create account (role: CUSTOMER)  →  Return JWT
-POST /api/auth/login     →  Validate credentials               →  Return JWT
-GET  /api/auth/me        →  Bearer token required              →  Account profile
-```
-
-Include the token in subsequent requests:
-
-```
-Authorization: Bearer <accessToken>
-```
-
-### Shopping Flow
-
-```
-1. GET  /api/products              Browse catalog (public)
-2. GET  /api/categories            Browse categories (public)
-3. POST /api/carts                  Create cart (authenticated)
-4. POST /api/carts/{id}/items       Add product to cart
-5. POST /api/orders                 Checkout cart → creates order, deducts stock
-6. POST /api/payments               Record payment, sets order status to PAID
-```
-
-### Product Management Flow (Authenticated)
-
-```
-POST   /api/categories          Create category
-POST   /api/products            Create product
-PUT    /api/products/{id}       Update product
-DELETE /api/products/{id}       Soft-delete product
-```
-
-### Comments Flow
-
-```
-GET  /api/comments/product/{productId}   List comments (public)
-POST /api/comments                       Post comment (authenticated)
-POST /api/comments/{id}/replies            Reply to comment (authenticated)
-```
-
-## Security & Roles
-
-| Role       | Access                                              |
-|------------|-----------------------------------------------------|
-| `CUSTOMER` | Carts, orders, comments, profile                    |
-| `STAFF`    | Customer access + `/api/staff/**` endpoints         |
-| `ADMIN`    | Full access including `/api/admin/**` endpoints     |
-
-Public (no token): `GET` products, categories, comments, discounts, auth endpoints.
-
-## Database Entity Mapping
-
-| Table               | Entity        | Key Relationships                          |
-|---------------------|---------------|--------------------------------------------|
-| `roles`             | `Role`        | PK: `code`                                 |
-| `accounts`          | `Account`     | ManyToOne → Role                           |
-| `categories`        | `Category`    | OneToMany → Product                        |
-| `products`          | `Product`     | ManyToOne → Category, ManyToMany → Discount|
-| `product_images`    | `ProductImage`| ManyToOne → Product                        |
-| `carts`             | `Cart`        | ManyToOne → Account, OneToMany → CartItem  |
-| `items`             | `CartItem`    | ManyToOne → Cart, Product                  |
-| `orders`            | `Order`       | ManyToOne → Account, OneToMany → OrderDetail|
-| `orders_details`    | `OrderDetail` | ManyToOne → Order, Product                 |
-| `payments`          | `Payment`     | ManyToOne → Order                          |
-| `discounts`         | `Discount`    | ManyToMany → Product                       |
-| `comments`          | `Comment`     | ManyToOne → Product, Account               |
-| `replies`           | `Reply`       | ManyToOne → Comment, Account               |
-
-Soft deletes use the `del_if` column via `SoftDeletableEntity`.
-
-## Caching
-
-Redis caches:
-- `categories` — full category list (30 min TTL)
-- `products` — full product list (30 min TTL)
-
-Cache is evicted on create/update/delete operations.
-
-## Build & Test
-
-```bash
-./mvnw clean compile    # Compile + checkstyle + spotless
-./mvnw test             # Run unit tests
-./mvnw package          # Build JAR
-```
-
-## Project Conventions
-
-- Entity primary keys map DB column `pk` → Java field `id`
-- Business identifiers (`id` VARCHAR column) → Java field `businessId`
-- Snake_case DB columns → camelCase Java fields via `@Column(name = "...")`
-- Passwords hashed with BCrypt
-- Business exceptions use `ErrorCode` enum for consistent error codes
-
-## License
-
-Internal project — Soulflow Flower Shop team.
+## Giấy phép (License)
+Dự án được cấp phép theo tiêu chuẩn MIT License.
