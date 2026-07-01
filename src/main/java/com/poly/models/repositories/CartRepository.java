@@ -41,18 +41,22 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
 	@Query("""
 			UPDATE Cart ca
 			SET ca.expired = true
-			WHERE (
+			WHERE ca.pk IN (
+				SELECT c2.pk FROM Cart c2
+				LEFT JOIN c2.account a
+				WHERE (
 					:keyword IS NULL
-					OR LOWER(ca.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
-					OR LOWER(ca.account.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
-					OR LOWER(ca.account.fullname) LIKE LOWER(CONCAT('%', :keyword, '%'))
-					OR LOWER(ca.account.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+					OR LOWER(c2.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
+					OR LOWER(a.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
+					OR LOWER(a.fullname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+					OR LOWER(a.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
 				)
-				AND (:fromDate IS NULL OR ca.createdDate >= :fromDate)
-				AND (:toDate IS NULL OR ca.createdDate <= :toDate)
-				AND (:expired IS NULL OR ca.expired = :expired)
-				AND (:deleted IS NULL OR ca.deleted = :deleted)
-				AND ca.expiredDate <= CURRENT_TIMESTAMP
+				AND (:fromDate IS NULL OR c2.createdDate >= :fromDate)
+				AND (:toDate IS NULL OR c2.createdDate <= :toDate)
+				AND (:expired IS NULL OR c2.expired = :expired)
+				AND (:deleted IS NULL OR c2.deleted = :deleted)
+				AND c2.expiredDate <= CURRENT_TIMESTAMP
+			)
 	    """)
 	int checkAndExpireBeforePagination(
 			@Param("keyword") String keyword,

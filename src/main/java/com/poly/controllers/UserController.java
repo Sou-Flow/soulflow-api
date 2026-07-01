@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,9 +16,12 @@ import com.poly.models.enums.OrderStatus;
 import com.poly.models.enums.SortOrder;
 import com.poly.models.requests.CartRequest;
 import com.poly.models.requests.CommentRequest;
+import com.poly.models.requests.ShippingFeeRequest;
+import com.poly.models.responses.ShippingFeeResponse;
 import com.poly.models.requests.OrderRequest;
 import com.poly.models.requests.PaymentRequest;
 import com.poly.models.requests.ReplyRequest;
+import com.poly.models.responses.AccountResponse;
 import com.poly.models.responses.CartResponse;
 import com.poly.models.responses.CommentResponse;
 import com.poly.models.responses.OrderResponse;
@@ -28,28 +32,59 @@ import com.poly.models.responses.ReplyResponse;
 import lombok.RequiredArgsConstructor;
 
 
+import com.poly.models.services.AccountService;
+import com.poly.models.services.CartService;
+import com.poly.models.services.CommentService;
+import com.poly.models.services.OrderService;
+import com.poly.models.services.PaymentService;
+import com.poly.models.services.ReplyService;
+import com.poly.models.services.ShippingService;
+
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
 public class UserController {
     
-    private final AdminController adminController;
+    private final AccountService accountService;
+    private final CartService cartService;
+    private final CommentService commentService;
+    private final OrderService orderService;
+    private final PaymentService paymentService;
+    private final ReplyService replyService;
+    private final ShippingService shippingService;
+
+    @GetMapping("/me")
+    public AccountResponse getCurrentUser() {
+        String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        return accountService.findByUsername(username);
+    }
 
     /* cart */
 
     @PostMapping("/cart")
     CartResponse saveCart(@RequestBody CartRequest request) {
-        return adminController.save(request);
+        try {
+            String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            if (username != null && !username.equals("anonymousUser")) {
+                AccountResponse acc = accountService.findByUsername(username);
+                if (acc != null && acc.getPk() != null) {
+                    request.setAccountPk(Long.valueOf(acc.getPk()));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return cartService.save(request);
     }
 
     @DeleteMapping("/cart/{pk}")
     void deleteCartByPk(@PathVariable Long pk) {
-        adminController.deleteCartByPk(pk);
+        cartService.softDeleteByPk(pk);
     }
 
     @GetMapping("/cart/{pk}")
     CartResponse findCartByPk(@PathVariable Long pk) {
-        return adminController.findCartByPk(pk);
+        return cartService.findByPk(pk);
     }
 
     @GetMapping("/cart")
@@ -63,7 +98,8 @@ public class UserController {
         @RequestParam(defaultValue = "0") Integer pageNumber,
         @RequestParam(defaultValue = "5") Integer pageSize
     ) {
-        return adminController.filterAndPaginateCarts(keyword, fromDate, toDate, expired, deleted, sortOrder, pageNumber, pageSize);
+        cartService.checkAndExpireBeforePagination(keyword, fromDate, toDate, expired, deleted);
+        return cartService.filterAndPaginateCarts(keyword, fromDate, toDate, expired, deleted, sortOrder, pageNumber, pageSize);
     }
 
 
@@ -71,35 +107,78 @@ public class UserController {
 
     @PostMapping("/comment")
     CommentResponse saveComment(@RequestBody CommentRequest request) {
-        return adminController.save(request);
+        try {
+            String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            if (username != null && !username.equals("anonymousUser")) {
+                AccountResponse acc = accountService.findByUsername(username);
+                if (acc != null && acc.getPk() != null) {
+                    request.setAccountPk(Long.valueOf(acc.getPk()));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return commentService.save(request);
     }
 
     @DeleteMapping("/comment/{pk}")
     void deleteCommentByPk(@PathVariable Long pk) {
-        adminController.deleteCommentByPk(pk);
+        commentService.softDeleteByPk(pk);
     }
 
     @GetMapping("/comment/{pk}")
     CommentResponse findCommentByPk(@PathVariable Long pk) {
-        return adminController.findCommentByPk(pk);
+        return commentService.findByPk(pk);
     }
 
     /* order */
 
     @PostMapping("/order")
 	OrderResponse saveOrder(@RequestBody OrderRequest request) {
-        request.setStatus(OrderStatus.PENDING);
-        return adminController.save(request);
+        try {
+            String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            if (username != null && !username.equals("anonymousUser")) {
+                AccountResponse acc = accountService.findByUsername(username);
+                if (acc != null && acc.getPk() != null) {
+                    request.setAccountPk(Long.valueOf(acc.getPk()));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if ("COD".equalsIgnoreCase(request.getPaymentMethod())) {
+            request.setStatus(OrderStatus.PENDING);
+        } else {
+            request.setStatus(OrderStatus.WAITING_PAYMENT);
+        }
+        OrderResponse orderResponse = orderService.save(request);
+        
+        if ("COD".equalsIgnoreCase(request.getPaymentMethod())) {
+            // COD: tăng sales ngay và gửi thông báo WebSocket
+            orderService.increaseSalesForOrder(Long.valueOf(orderResponse.getPk()));
+        } else {
+            // Chuyển khoản: chỉ tăng sales khi đã thanh toán đủ
+            Integer effectedRows = orderService.markOrderAsPaidIfFullyPaid(Long.valueOf(orderResponse.getPk()));
+            if (effectedRows != 0) {
+                orderResponse = orderService.findByPk(Long.valueOf(orderResponse.getPk()));
+            }
+        }
+        return orderResponse;
     }
 	
 	@DeleteMapping("/order/{pk}")
 	void deleteOrderByPk(@PathVariable Long pk) {
-        adminController.deleteOrderByPk(pk);
+        orderService.softDeleteByPk(pk);
     }
 
-	@GetMapping("/order/{pk}")
+	@GetMapping({"/order/{pk}", "/order/by-code/{pk}"})
 	OrderResponse findOrderByPk(@PathVariable Long pk) {
-        return adminController.findOrderByPk(pk);
+        return orderService.findByPk(pk);
+    }
+	
+	@PutMapping({"/order/{pk}/status", "/order/by-code/{pk}/status"})
+	void updateOrderStatus(@PathVariable Long pk, @RequestParam OrderStatus status) {
+        orderService.updateStatus(pk, status);
     }
 	
 	@GetMapping("/order")
@@ -107,37 +186,55 @@ public class UserController {
 			@RequestParam(required = false) String keyword,
             @RequestParam(required = false) LocalDateTime fromDate,
             @RequestParam(required = false) LocalDateTime toDate,
-			@RequestParam(defaultValue = "PENDING") OrderStatus status,
+			@RequestParam(required = false) OrderStatus status,
             @RequestParam(defaultValue = "false") Boolean expired,
             @RequestParam(defaultValue = "false") Boolean deleted,
             @RequestParam(defaultValue = "DESC") SortOrder sortOrder,
             @RequestParam(defaultValue = "0") Integer pageNumber,
             @RequestParam(defaultValue = "5") Integer pageSize
 	) {
-        return adminController.filterAndPaginateOrders(keyword, fromDate, toDate, status, expired, deleted, sortOrder, pageNumber, pageSize);
+        orderService.checkAndExpireBeforePagination(keyword, fromDate, toDate, status, expired, deleted);
+        return orderService.filterAndPaginateOrders(keyword, fromDate, toDate, status, expired, deleted, sortOrder, pageNumber, pageSize);
     }
 
     /* payment */
 
     @PostMapping("/payment")
     PaymentResponse savePayment(@RequestBody PaymentRequest request) {
-        return adminController.save(request);
+        return paymentService.save(request);
     }
 
     /* reply */
 
     @PostMapping("/reply")
     ReplyResponse saveReply(@RequestBody ReplyRequest request) {
-        return adminController.save(request);
+        try {
+            String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            if (username != null && !username.equals("anonymousUser")) {
+                AccountResponse acc = accountService.findByUsername(username);
+                if (acc != null && acc.getPk() != null) {
+                    request.setAccountPk(Long.valueOf(acc.getPk()));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return replyService.save(request);
     }
 
     @DeleteMapping("/reply/{pk}")
     void deleteReplyByPk(@PathVariable Long pk) {
-        adminController.deleteReplyByPk(pk);
+        replyService.softDeleteByPk(pk);
     }
 
     @GetMapping("/reply/{pk}")
     ReplyResponse findReplyByPk(@PathVariable Long pk) {
-        return adminController.findReplyByPk(pk);
+        return replyService.findByPk(pk);
+    }
+
+    /* shipping */
+    @PostMapping("/shipping/calculate-fee")
+    ShippingFeeResponse calculateFee(@RequestBody ShippingFeeRequest request) {
+        return shippingService.calculateFee(request);
     }
 }

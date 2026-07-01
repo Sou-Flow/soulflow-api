@@ -39,6 +39,7 @@ public abstract class OrderMapper {
 	@Mapping(target = "createdDate", 	source = "createdDate", dateFormat = "dd-MM-yyyy HH:mm:ss")
 	@Mapping(target = "expiredDate", 	source = "expiredDate", dateFormat = "dd-MM-yyyy HH:mm:ss")
 	@Mapping(target = "total", 			source = "total", numberFormat = "#.##")
+	@Mapping(target = "shippingFee", 	source = "shippingFee", numberFormat = "#.##")
 	@Mapping(target = "accountPk",			  	source = "account.pk")
 	@Mapping(target = "orderDetailResponses", 	source = "orderDetails")
 	public abstract OrderResponse toResponse(Order order);
@@ -57,19 +58,37 @@ public abstract class OrderMapper {
 			order.setExpired(oldOrder.getExpired());
 			order.setCreatedDate(oldOrder.getCreatedDate());
 			order.setAccount(oldOrder.getAccount());
+			if (order.getShippingFee() == null) {
+				order.setShippingFee(oldOrder.getShippingFee());
+			}
+			if (order.getPaymentMethod() == null) {
+				order.setPaymentMethod(oldOrder.getPaymentMethod());
+			}
+			if (order.getOrderDetails() == null || order.getOrderDetails().isEmpty()) {
+				order.setOrderDetails(oldOrder.getOrderDetails());
+			}
 			order.calTotal();
-			order.setDeleted(order.getDeleted());
+			order.setDeleted(oldOrder.getDeleted());
 			return;
 		}
-		order.setCode("O" + String.format("%06d", orderRepo.count() + 1));
+		order.setCode("O-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
 		order.setCreatedDate(LocalDateTime.now());
 		order.setExpiredDate(LocalDateTime.now().plusWeeks(2));
 		order.setExpired(false);
-		Account account = new Account();
-		account.setPk(request.getAccountPk());
-		order.setAccount(account);
-		for (OrderDetail od : order.getOrderDetails()) {
-			od.setOrder(order);
+		if (request.getAccountPk() != null) {
+			Account account = new Account();
+			account.setPk(request.getAccountPk());
+			order.setAccount(account);
+		} else {
+			order.setAccount(null);
+		}
+		if (order.getPaymentMethod() == null || order.getPaymentMethod().trim().isEmpty()) {
+			order.setPaymentMethod("COD");
+		}
+		if (order.getOrderDetails() != null) {
+			for (OrderDetail od : order.getOrderDetails()) {
+				od.setOrder(order);
+			}
 		}
 		order.calTotal();
 		order.setDeleted(false);		

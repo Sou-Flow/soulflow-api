@@ -16,6 +16,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -30,6 +31,9 @@ import com.poly.models.repositories.AccountRepository;
 import com.poly.models.repositories.RoleRepository;
 import com.poly.models.requests.AccountRequest;
 import com.poly.models.requests.AuthRequest;
+import com.poly.models.requests.ForgotPasswordRequest;
+import com.poly.models.requests.ResetPasswordRequest;
+import com.poly.models.requests.VerifyOtpRequest;
 import com.poly.models.responses.AccountResponse;
 import com.poly.models.responses.AuthResponse;
 import com.poly.models.responses.PageResponse;
@@ -39,6 +43,8 @@ import com.poly.utils.JwtUtil;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.cache.CacheManager;
 
 @Service
 @RequiredArgsConstructor
@@ -52,7 +58,42 @@ public class AccountServiceImpl implements AccountService {
 	private final AuthenticationManager authenticationManager;
 	private final JwtUtil jwtUtil;
 	private final ImageService imageService;
+	private final PasswordEncoder passwordEncoder;
+	private final CacheManager cacheManager;
+	private final OtpService otpService;
+	private final EmailService emailService;
 	
+	@Override
+	@Transactional
+	public AuthResponse register(AccountRequest request) {
+		if (accountRepo.findByUsername(request.getUsername()).isPresent()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username already exists");
+		}
+		if (accountRepo.findByEmail(request.getEmail()).isPresent()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already exists");
+		}
+
+		Role role = roleRepo.findByCode(RoleCode.USER)
+				.orElseThrow(() -> new EntityNotFoundException("Role USER not found"));
+
+		Account account = accountMapper.toEntity(request);
+		account.setPassword(passwordEncoder.encode(request.getPassword()));
+		account.setRole(role);
+		account.setCreatedDate(LocalDateTime.now());
+		account = accountRepo.save(account);
+		clearAccountCaches(account);
+
+		String token = jwtUtil.generateToken(account.getUsername(), account.getRole().getCode().name());
+
+		return AuthResponse.builder()
+				.token(token)
+				.pk(String.valueOf(account.getPk()))
+				.fullname(account.getFullname())
+				.email(account.getEmail())
+				.photo(account.getPhoto())
+				.build();
+	}
+
 	@Override
 	@Transactional
 	public AuthResponse login(AuthRequest authRequest) {
@@ -115,6 +156,7 @@ public class AccountServiceImpl implements AccountService {
 				account = accountMapper.toEntity(request);
 				account.setRole(role);
 				account = accountRepo.save(account);
+				clearAccountCaches(account);
 			}
 			
             // Generate JWT
@@ -134,27 +176,82 @@ public class AccountServiceImpl implements AccountService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Google token");
         }
 	}
+
+	@Override
+	public void forgotPassword(ForgotPasswordRequest request) {
+		Account account = accountRepo.findByEmail(request.getEmail())
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tài khoản với email này"));
+		
+		String otp = otpService.generateOtp(account.getEmail());
+		try {
+			emailService.sendOtpEmail(account.getEmail(), otp);
+		} catch (Exception e) {
+			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi gửi email OTP");
+		}
+	}
+
+	@Override
+	public void verifyOtp(VerifyOtpRequest request) {
+		boolean isValid = otpService.verifyOtpWithoutDeleting(request.getEmail(), request.getOtp());
+		if (!isValid) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã OTP không hợp lệ hoặc đã hết hạn");
+		}
+	}
+
+	@Override
+	@Transactional
+	public void resetPassword(ResetPasswordRequest request) {
+		boolean isValid = otpService.validateOtp(request.getEmail(), request.getOtp());
+		if (!isValid) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã OTP không hợp lệ hoặc đã hết hạn");
+		}
+		
+		Account account = accountRepo.findByEmail(request.getEmail())
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tài khoản với email này"));
+		
+		account.setPassword(passwordEncoder.encode(request.getNewPassword()));
+		accountRepo.save(account);
+		clearAccountCaches(account);
+	}
 	
 	@Override
 	@Transactional
-	@CachePut(value = "accountList", key = "#result.pk")
-	@CacheEvict(value = "accountPages", allEntries = true)
 	public AccountResponse save(AccountRequest request) {
-		// TODO Auto-generated method stub
 		Account account = accountMapper.toEntity(request);
 		Account saved = accountRepo.save(account);
+		clearAccountCaches(saved);
 		return accountMapper.toBasicResponse(saved);
 	}
 
 	@Override
 	@Transactional
-	@Caching(evict = {
-			@CacheEvict(value = "accountList", key = "#accountPk"), 
-	        @CacheEvict(value = "accountPages", allEntries = true)
-	})
 	public void softDeleteByPk(Long accountPk) {
-		// TODO Auto-generated method stub
 		accountRepo.softDelete(accountPk);
+		Account account = accountRepo.findById(accountPk).orElse(null);
+		if (account != null) {
+		    clearAccountCaches(account);
+		}
+	}
+	
+	private void clearAccountCaches(Account account) {
+	    if (cacheManager != null) {
+	        org.springframework.cache.Cache pagesCache = cacheManager.getCache("accountPages");
+	        if (pagesCache != null) pagesCache.clear();
+	        
+	        org.springframework.cache.Cache listCache = cacheManager.getCache("accountList");
+	        if (listCache != null) {
+	            if (account.getPk() != null) listCache.evict(account.getPk());
+	            if (account.getUsername() != null) listCache.evict(account.getUsername());
+	            if (account.getEmail() != null) listCache.evict(account.getEmail());
+	        }
+	        
+	        org.springframework.cache.Cache detailsCache = cacheManager.getCache("accountDetailsList");
+	        if (detailsCache != null) {
+	            if (account.getPk() != null) detailsCache.evict(account.getPk());
+	            if (account.getUsername() != null) detailsCache.evict(account.getUsername());
+	            if (account.getEmail() != null) detailsCache.evict(account.getEmail());
+	        }
+	    }
 	}
 
 	@Override

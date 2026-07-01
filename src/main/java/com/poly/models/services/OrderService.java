@@ -33,4 +33,7 @@ public interface OrderService {
     );
 
     Integer markOrderAsPaidIfFullyPaid(Long orderPk);
+    void markOrderAsPaidUnconditionally(Long orderPk);
+    void increaseSalesForOrder(Long orderPk);
+    void updateStatus(Long orderPk, OrderStatus status);
 }

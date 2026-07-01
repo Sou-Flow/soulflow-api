@@ -3,6 +3,7 @@ package com.poly.models.mappers;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.mapstruct.AfterMapping;
 import org.mapstruct.IterableMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -61,6 +62,7 @@ public abstract class CommentMapper {
 	@IterableMapping(qualifiedByName = "detailedResponse")
 	public abstract List<CommentResponse> toDetailedResponseList(List<Comment> comments);
 
+	@AfterMapping
 	protected void afterToEntity(CommentRequest request, @MappingTarget Comment comment) {
 		Long pk = comment.getPk();
 		if (pk != null) {

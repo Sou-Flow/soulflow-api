@@ -20,6 +20,10 @@ public class OrderResponse {
     private String address;
     
     private String total;
+    
+    private String shippingFee;
+    
+    private String paymentMethod;
 
     private String createdDate;
 

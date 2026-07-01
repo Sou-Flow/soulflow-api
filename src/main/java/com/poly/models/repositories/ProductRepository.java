@@ -3,6 +3,8 @@ package com.poly.models.repositories;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,7 +19,10 @@ import com.poly.models.entities.Product;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
-	
+    Optional<Product> findByCode(String code);
+
+    List<Product> findTop12ByDeletedFalseOrderBySalesDesc();
+
 	@Query("""
         SELECT p
         FROM Product p
@@ -30,11 +35,15 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             AND (:maxPrice IS NULL OR p.price <= :maxPrice)
             AND (
                 :keyword IS NULL
+                OR LOWER(p.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(p.nameVn) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(p.nameEng) LIKE LOWER(CONCAT('%', :keyword, '%'))
             )
             AND (:fromDate IS NULL OR p.createdDate >= :fromDate)
             AND (:toDate IS NULL OR p.createdDate <= :toDate)
+        ORDER BY
+            p.deleted ASC,
+            CASE WHEN p.quantity <= 0 THEN 1 ELSE 0 END ASC
     """)
     Page<Product> filterProducts(
             @Param("minPrice") BigDecimal minPrice,
@@ -69,4 +78,19 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 		AND p.quantity >= :amount
 	""")
 	int decreaseQuantity(@Param("pk") Long pk, @Param("amount") Integer amount); 
+
+    @Modifying
+	@Transactional
+	@Query("""
+		UPDATE Product p
+		SET p.quantity = p.quantity + :amount,
+		    p.available = CASE WHEN (p.quantity + :amount) > 0 THEN true ELSE p.available END
+		WHERE p.pk = :pk
+	""")
+	int increaseQuantity(@Param("pk") Long pk, @Param("amount") Integer amount);
+
+	@Modifying
+	@Transactional
+	@Query("UPDATE Product p SET p.sales = (CASE WHEN p.sales IS NULL THEN 0L ELSE p.sales END) + :amount WHERE p.pk = :pk")
+	int increaseSales(@Param("pk") Long pk, @Param("amount") Integer amount);
 }

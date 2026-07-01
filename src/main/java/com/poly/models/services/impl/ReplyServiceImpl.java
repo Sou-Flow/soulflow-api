@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
@@ -37,6 +38,8 @@ public class ReplyServiceImpl implements ReplyService {
 
 	@Override
 	@Transactional
+	@CachePut(value = "replyList", key = "#result.pk")
+	@CacheEvict(value = "replyPages", allEntries = true)
 	public ReplyResponse save(ReplyRequest request) {
 		Reply reply = replyMapper.toEntity(request);
 		Reply saved = replyRepo.save(reply);

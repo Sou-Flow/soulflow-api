@@ -66,6 +66,12 @@ public class Order {
     @Column(insertable = false)
 	private OrderStatus status;
 	
+	@Column(name = "shipping_fee")
+	private BigDecimal shippingFee;
+	
+	@Column(name = "payment_method")
+	private String paymentMethod;
+	
 	@Column(name = "del_if")
 	private Boolean deleted;
 
@@ -78,8 +84,13 @@ public class Order {
 
 	public void calTotal() {
 		BigDecimal temp = BigDecimal.ZERO;
-		for (OrderDetail od : orderDetails) {
-			temp = temp.add(od.getSubtotal());
+		if (orderDetails != null) {
+			for (OrderDetail od : orderDetails) {
+				temp = temp.add(od.getSubtotal());
+			}
+		}
+		if (shippingFee != null) {
+			temp = temp.add(shippingFee);
 		}
 		total = temp;
 	}

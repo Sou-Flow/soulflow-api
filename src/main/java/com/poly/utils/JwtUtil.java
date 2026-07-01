@@ -9,20 +9,28 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import javax.crypto.SecretKey; 
 
+import org.springframework.beans.factory.annotation.Value;
+
 @Component
 public class JwtUtil {
 
-    private final String SECRET = "blackfloydcantbreathebecausea12kneesonhisneckforusingacounterfeitmoneytobuyabanana"; // ≥32 chars
-    private final SecretKey KEY = Keys.hmacShaKeyFor(SECRET.getBytes());
+    @Value("${jwt.secret:blackfloydcantbreathebecausea12kneesonhisneckforusingacounterfeitmoneytobuyabanana}")
+    private String secret;
+
+    @Value("${jwt.expiration:7200000}")
+    private long expiration;
+    
+    private SecretKey getKey() {
+        return Keys.hmacShaKeyFor(secret.getBytes());
+    }
     
     public String generateToken(String username, String roleCode) {
         return Jwts.builder()
                 .setSubject(username)
                 .claim("roleCode", roleCode)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 2 * 60 * 60 * 1000)) //2 hours
-                //.setExpiration(new Date(System.currentTimeMillis() + 30 * 1000)) //30 seconds
-                .signWith(KEY)
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getKey())
                 .compact();
     }
 
@@ -45,7 +53,7 @@ public class JwtUtil {
 
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(KEY)
+                .setSigningKey(getKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();

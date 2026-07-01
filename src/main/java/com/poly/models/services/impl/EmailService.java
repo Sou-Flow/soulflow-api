@@ -111,4 +111,32 @@ public class EmailService {
 
         mailSender.send(message);
     }
+
+    @Async
+    public void sendOtpEmail(String to, String otp) throws Exception {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+        helper.setFrom("nv80804@gmail.com");
+        helper.setTo(to);
+        helper.setSubject("Mã xác thực quên mật khẩu");
+
+        String htmlContent = """
+        <div style="font-family:Arial, sans-serif; max-width:500px; margin:auto; border:1px solid #ddd; padding: 20px; text-align: center;">
+            <h2 style="color: #212529;">Yêu cầu đặt lại mật khẩu</h2>
+            <p>Xin chào,</p>
+            <p>Bạn đã yêu cầu đặt lại mật khẩu. Vui lòng sử dụng mã OTP dưới đây để xác thực:</p>
+            <div style="background-color: #f8f9fa; padding: 15px; margin: 20px 0; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #007bff; border-radius: 5px;">
+                %s
+            </div>
+            <p style="color: #6c757d; font-size: 14px;">Mã OTP này có hiệu lực trong vòng 5 phút. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
+            <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+            <p style="font-size: 12px; color: #999;">Trân trọng,<br/>Đội ngũ Soul Flow</p>
+        </div>
+        """.formatted(otp);
+
+        helper.setText(htmlContent, true);
+        mailSender.send(message);
+    }
 }

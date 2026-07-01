@@ -82,7 +82,7 @@ public abstract class DiscountMapper {
 			discount.setExpired(false);
 		}
       
-        discount.setCode("D" + String.format("%06d" + discountRepo.count() + 1));
+        discount.setCode("D-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         discount.setCreatedDate(now); 
         discount.setDeleted(false);
     }

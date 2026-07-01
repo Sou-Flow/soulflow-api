@@ -20,6 +20,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
             (:deleted IS NULL OR c.deleted = :deleted) 
             AND (
                 :keyword IS NULL
+                OR LOWER(c.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(c.nameVn) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(c.nameEng) LIKE LOWER(CONCAT('%', :keyword, '%'))
             )

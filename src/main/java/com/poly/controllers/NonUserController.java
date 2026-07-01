@@ -6,8 +6,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -19,6 +21,11 @@ import com.poly.models.responses.CommentResponse;
 import com.poly.models.responses.PageResponse;
 import com.poly.models.responses.ProductResponse;
 import com.poly.models.responses.ReplyResponse;
+import com.poly.models.requests.ForgotPasswordRequest;
+import com.poly.models.requests.ResetPasswordRequest;
+import com.poly.models.requests.VerifyOtpRequest;
+import com.poly.models.services.AccountService;
+import com.poly.models.services.ProductService;
 import com.poly.models.services.impl.AccountServiceImpl.GoogleTokenDTO;
 
 import lombok.RequiredArgsConstructor;
@@ -28,6 +35,8 @@ import lombok.RequiredArgsConstructor;
 public class NonUserController  {
 
     private final AdminController adminController;
+    private final AccountService accountService;
+    private final ProductService productService;
 
     @PostMapping("/login")
     AuthResponse login(@RequestBody AuthRequest request) {
@@ -37,6 +46,21 @@ public class NonUserController  {
     @PostMapping("/google/login")
     AuthResponse googleLogin(@RequestBody GoogleTokenDTO token) {
         return adminController.googleLogin(token);
+    }
+
+    @PostMapping("/forgot-password")
+    void forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        accountService.forgotPassword(request);
+    }
+
+    @PostMapping("/verify-otp")
+    void verifyOtp(@RequestBody VerifyOtpRequest request) {
+        accountService.verifyOtp(request);
+    }
+
+    @PostMapping("/reset-password")
+    void resetPassword(@RequestBody ResetPasswordRequest request) {
+        accountService.resetPassword(request);
     }
 
     @GetMapping("/category/list")
@@ -79,7 +103,7 @@ public class NonUserController  {
 			@RequestParam(required = false) LocalDateTime toDate,
 			@RequestParam(required = false) Long categoryPk, 
             @RequestParam(defaultValue = "false") Boolean customised,
-			@RequestParam(defaultValue = "false") Boolean available,
+			@RequestParam(defaultValue = "true") Boolean available,
 			@RequestParam(defaultValue = "false") Boolean deleted,
 			@RequestParam(defaultValue = "DESC") SortOrder sortOrder, 
 			@RequestParam(defaultValue = "0") Integer pageNumber, 
@@ -88,4 +112,27 @@ public class NonUserController  {
         return adminController.filterAndPaginateProducts(keyword, minPrice, maxPrice, fromDate, toDate, categoryPk, customised, available, deleted, sortOrder, pageNumber, pageSize);
 	}
 
+    @GetMapping("/product/top-sales")
+    List<ProductResponse> getTopSales() {
+        return productService.getTop12Bestsellers();
+    }
+
+    @GetMapping("/product/detail/{pk}")
+    ProductResponse findProductDetailByPk(@PathVariable Long pk) {
+        return adminController.findProductDetailByPk(pk);
+    }
+
+    @GetMapping("/product/by-code/{code}")
+    ProductResponse findProductByCode(@PathVariable String code) {
+        return adminController.findProductByCode(code);
+    }
+
+    @PostMapping("/sepay-webhook")
+    public org.springframework.http.ResponseEntity<java.util.Map<String, Object>> processSepayWebhook(
+        @RequestHeader(value = "X-SePay-Signature", required = false) String sepaySignature,
+        @RequestHeader(value = "X-SePay-Timestamp", required = false) String sepayTimestamp,
+        @RequestBody byte[] rawPayloadBytes) {
+        adminController.processSepayWebhook(sepaySignature, sepayTimestamp, rawPayloadBytes);
+        return org.springframework.http.ResponseEntity.ok(java.util.Map.of("success", true));
+    }
 }

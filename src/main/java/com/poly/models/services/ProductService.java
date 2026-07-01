@@ -13,6 +13,7 @@ public interface ProductService {
 	ProductResponse save(ProductRequest request);
 	void softDeleteByPk(Long productPk);
 	ProductResponse findByPk(Long productPk);
+	ProductResponse findProductByCode(String code);
 	ProductResponse findProductDetailByPk(Long productPk);
 	PageResponse<ProductResponse> filterAndPaginateProducts(
 			String keyword, 
@@ -29,4 +30,5 @@ public interface ProductService {
 			Integer pageSize
 	);
 	Integer decreaseQuantity(Long pk, Integer amount);
+	java.util.List<ProductResponse> getTop12Bestsellers();
 }

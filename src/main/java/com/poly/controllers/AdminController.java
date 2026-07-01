@@ -41,13 +41,28 @@ import com.poly.models.responses.PageResponse;
 import com.poly.models.responses.PaymentResponse;
 import com.poly.models.responses.ProductResponse;
 import com.poly.models.responses.ReplyResponse;
-import com.poly.models.services.BaseService;
+import lombok.RequiredArgsConstructor;
+import com.poly.models.services.*;
 import com.poly.models.services.impl.AccountServiceImpl.GoogleTokenDTO;
-
 
 @RestController
 @RequestMapping("/admin")
-public class AdminController extends BaseService {
+@RequiredArgsConstructor
+public class AdminController {
+
+    private final ImageService imageService;
+    private final AccountService accountService;
+    private final CategoryService categoryService;
+    private final ProductService productService;
+    private final CartService cartService;
+    private final CommentService commentService;
+    private final OrderService orderService;
+    private final ReplyService replyService;
+    private final ProductImageService productImageService;
+    private final DiscountService discountService;
+    private final PaymentService paymentService;
+    private final ChatMessageService chatMessageService;
+    private final ShippingService shippingService;
 
     /* account */
 
@@ -218,6 +233,16 @@ public class AdminController extends BaseService {
 		return productService.findByPk(pk);
 	}
 
+	@GetMapping("/product/detail/{pk}")
+	ProductResponse findProductDetailByPk(@PathVariable Long pk) {
+		return productService.findProductDetailByPk(pk);
+	}
+
+	@GetMapping("/product/by-code/{code}")
+	ProductResponse findProductByCode(@PathVariable String code) {
+		return productService.findProductByCode(code);
+	}
+
 	@GetMapping("/product")
 	PageResponse<ProductResponse> filterAndPaginateProducts(
 			@RequestParam(required = false) String keyword, 
@@ -329,7 +354,7 @@ public class AdminController extends BaseService {
 			@RequestParam(required = false) String keyword,
             @RequestParam(required = false) LocalDateTime fromDate,
             @RequestParam(required = false) LocalDateTime toDate,
-			@RequestParam(defaultValue = "PENDING") OrderStatus status,
+			@RequestParam(required = false) OrderStatus status,
             @RequestParam(defaultValue = "false") Boolean expired,
             @RequestParam(defaultValue = "false") Boolean deleted,
             @RequestParam(defaultValue = "DESC") SortOrder sortOrder,
@@ -379,4 +404,8 @@ public class AdminController extends BaseService {
     PaymentResponse save(@RequestBody PaymentRequest request) {
         return paymentService.save(request);
     }   
+
+    public void processSepayWebhook(String sepaySignature, String sepayTimestamp, byte[] rawPayloadBytes) {
+        paymentService.processSepayWebhook(sepaySignature, sepayTimestamp, rawPayloadBytes);
+    }
 }

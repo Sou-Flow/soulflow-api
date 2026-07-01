@@ -27,6 +27,8 @@ public abstract class OrderDetailMapper {
 	protected ProductRepository productRepo;
 	@Autowired
     protected LocaleUtil localeHelper;
+    @Autowired
+    protected org.springframework.cache.CacheManager cacheManager;
 
 	@Mapping(target = "nameVn", 		ignore = true)
 	@Mapping(target = "nameEng", 		ignore = true)
@@ -36,11 +38,15 @@ public abstract class OrderDetailMapper {
 	@Mapping(target = "order", 			ignore = true)
 	public abstract OrderDetail toEntity(OrderDetailRequest request);
 
+	@Autowired
+	protected com.poly.models.services.ImageService imageService;
+
 	@Mapping(target = "price", 			source = "price", numberFormat = "#.##")
 	@Mapping(target = "subtotal", 		source = "subtotal", numberFormat = "#.##")
 	@Mapping(target = "name" , 			expression = "java(localeHelper.getName(orderDetail.product.getNameVn(), orderDetail.product.getNameEng()))")
 	@Mapping(target = "productPk" ,		source = "product.pk")
 	@Mapping(target = "orderPk" , 		source = "order.pk")
+	@Mapping(target = "imageUrl", 		ignore = true)
 	public abstract OrderDetailResponse toResponse(OrderDetail orderDetail);
 
 	public abstract List<OrderDetail> toEntityList(List<OrderDetailRequest> orderDetailRequests);
@@ -53,16 +59,23 @@ public abstract class OrderDetailMapper {
 		Long productPk = request.getProductPk();
 		Product product = productRepo.findById(productPk)
 			.orElseThrow(() -> new EntityNotFoundException("Can't found product with PK: " + productPk));
-		
-		Integer effectedRows = productRepo.decreaseQuantity(request.getProductPk(), request.getQuantity());
-		if (effectedRows == 0) {
-			throw new RuntimeException("Quantity is not enough in stock");
-		}
 
 		orderDetail.setNameVn(product.getNameVn());
 		orderDetail.setNameEng(product.getNameEng());
 		orderDetail.setPrice(product.getPrice());
 		orderDetail.setSubtotal(orderDetail.getPrice().multiply(BigDecimal.valueOf(orderDetail.getQuantity())));
 		orderDetail.setProduct(product);
+	}
+	
+	@AfterMapping
+	protected void afterToResponse(OrderDetail orderDetail, @MappingTarget OrderDetailResponse response) {
+	    if (orderDetail.getProduct() != null && orderDetail.getProduct().getProductImages() != null && !orderDetail.getProduct().getProductImages().isEmpty()) {
+	        String imageName = orderDetail.getProduct().getProductImages().get(0).getName();
+	        try {
+	            response.setImageUrl(imageService.getPublicUrl(imageName));
+	        } catch (Exception e) {
+	            response.setImageUrl(null);
+	        }
+	    }
 	}
 }

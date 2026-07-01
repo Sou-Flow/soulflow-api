@@ -60,13 +60,17 @@ public class Cart {
 	@JoinColumn(name = "account_pk")
 	private Account account;
 	
-	@OneToMany(mappedBy = "cart", cascade = CascadeType.ALL , fetch = FetchType.LAZY)
+	@OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	private List<Item> items = new ArrayList<>();
 	
 	public void calTotal() {
 		BigDecimal temp = BigDecimal.ZERO;
-		for (Item it : items) {
-			temp = temp.add(it.getSubtotal());
+		if (items != null) {
+			for (Item it : items) {
+				if (it != null && it.getSubtotal() != null) {
+					temp = temp.add(it.getSubtotal());
+				}
+			}
 		}
 		total = temp;
 	}

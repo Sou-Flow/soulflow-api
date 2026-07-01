@@ -18,4 +18,6 @@ public class OrderDetailResponse {
     private String productPk;
     
     private String orderPk;
+    
+    private String imageUrl;
 }

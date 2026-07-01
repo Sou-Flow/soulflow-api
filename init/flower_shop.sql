@@ -94,6 +94,8 @@ CREATE TABLE orders (
     expired_date DATETIME2 NOT NULL,
     expired BIT DEFAULT 0 NOT NULL,
     status VARCHAR(50) DEFAULT 'PENDING',
+    shipping_fee DECIMAL(18,2) DEFAULT 0,
+    payment_method VARCHAR(50) DEFAULT 'COD',
     del_if BIT NOT NULL DEFAULT 0,
 
     account_pk BIGINT NOT NULL,

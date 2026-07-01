@@ -81,13 +81,16 @@ public abstract class ProductMapper {
 			product.setDeleted(oldProduct.getDeleted());
 			return;
 		}
-		product.setCode("P" + String.format("%06d", productRepo.count() + 1));
+		product.setCode("P-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
 		product.setCreatedDate(LocalDateTime.now());
 		product.setSales(Long.valueOf(0));
 		Category category = new Category();
 		category.setPk(request.getCategoryPk());
 		product.setCategory(category);
 		product.setDeleted(false);
+		if (product.getCustomised() == null) product.setCustomised(false);
+		if (product.getAvailable() == null) product.setAvailable(true);
+		if (product.getQuantity() == null) product.setQuantity(0);
 	}
 
 }

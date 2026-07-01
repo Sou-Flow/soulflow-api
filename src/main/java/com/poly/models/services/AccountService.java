@@ -6,12 +6,19 @@ import com.poly.models.enums.RoleCode;
 import com.poly.models.enums.SortOrder;
 import com.poly.models.requests.AccountRequest;
 import com.poly.models.requests.AuthRequest;
+import com.poly.models.requests.ForgotPasswordRequest;
+import com.poly.models.requests.ResetPasswordRequest;
+import com.poly.models.requests.VerifyOtpRequest;
 import com.poly.models.responses.AccountResponse;
 import com.poly.models.responses.AuthResponse;
 import com.poly.models.responses.PageResponse;
 import com.poly.models.services.impl.AccountServiceImpl.GoogleTokenDTO;
 
 public interface AccountService {
+    void forgotPassword(ForgotPasswordRequest request);
+    void verifyOtp(VerifyOtpRequest request);
+    void resetPassword(ResetPasswordRequest request);
+	AuthResponse register(AccountRequest request);
 	AuthResponse login(AuthRequest authRequest);
 	AuthResponse loginWithGoogle(GoogleTokenDTO googleToken);
 	AccountResponse save(AccountRequest request);

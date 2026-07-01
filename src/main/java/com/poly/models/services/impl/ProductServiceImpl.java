@@ -40,10 +40,14 @@ public class ProductServiceImpl implements ProductService {
 	@Override
 	@Transactional
 	@CachePut(value = "productList", key = "#result.pk")
-    @CacheEvict(value = "productPages", allEntries = true) 
+    @Caching(evict = {
+        @CacheEvict(value = "productPages", allEntries = true),
+        @CacheEvict(value = "productDetailList", key = "#result.pk")
+    })
 	public ProductResponse save(ProductRequest request) {
 	    Product product = productMapper.toEntity(request);
 	    Product saved = productRepo.save(product);
+        refreshTopSalesCache();
 	    return productMapper.toBasicResponse(saved);
 	}
 	
@@ -60,6 +64,7 @@ public class ProductServiceImpl implements ProductService {
 				orElseThrow(() -> new EntityNotFoundException("Product not found with Id: " + productPk));
 		exist.setDeleted(true);
 		productRepo.save(exist);
+        refreshTopSalesCache();
 	}
 	
 	@Override
@@ -67,8 +72,15 @@ public class ProductServiceImpl implements ProductService {
 	public ProductResponse findByPk(Long productPk) {
 		if (productPk == null) throw new IllegalArgumentException("Can't find product when pk is null");
 		Product exist = productRepo.findById(Long.valueOf(productPk))
-				.orElseThrow(() -> new UsernameNotFoundException("Product not found with Id: " + productPk));
+				.orElseThrow(() -> new EntityNotFoundException("Product not found with Id: " + productPk));
 		return productMapper.toBasicResponse(exist);
+	}
+	
+	@Override
+	public ProductResponse findProductByCode(String code) {
+		Product exist = productRepo.findByCode(code)
+				.orElseThrow(() -> new EntityNotFoundException("Product not found with Code: " + code));
+		return productMapper.toDetailedResponse(exist);
 	}
 	
 	@Override
@@ -112,6 +124,24 @@ public class ProductServiceImpl implements ProductService {
 
     }
 	public Integer decreaseQuantity(Long pk, Integer amount) {
-		return productRepo.decreaseQuantity(pk, amount);
+		Integer res = productRepo.decreaseQuantity(pk, amount);
+        refreshTopSalesCache();
+        return res;
+	}
+
+	private java.util.List<ProductResponse> topSalesCache = new java.util.ArrayList<>();
+
+	@org.springframework.scheduling.annotation.Scheduled(fixedDelay = 900000)
+	public void refreshTopSalesCache() {
+		List<Product> products = productRepo.findTop12ByDeletedFalseOrderBySalesDesc();
+		this.topSalesCache = productMapper.toBasicResponseList(products);
+	}
+
+	@Override
+	public List<ProductResponse> getTop12Bestsellers() {
+		if (topSalesCache.isEmpty()) {
+			refreshTopSalesCache();
+		}
+		return topSalesCache;
 	}
 }

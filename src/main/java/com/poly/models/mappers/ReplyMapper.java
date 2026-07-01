@@ -46,9 +46,9 @@ public abstract class ReplyMapper {
 
     @AfterMapping
     protected void afterToEntity(ReplyRequest request, @MappingTarget Reply reply) {
-        Long pk = Long.valueOf(reply.getPk());
+        Long pk = reply.getPk();
         if (pk != null) {
-            Reply oldReply = replyRepo.findById(null).orElseThrow(
+            Reply oldReply = replyRepo.findById(pk).orElseThrow(
                 () -> new EntityNotFoundException("Reply not found with pk: " + pk)
             );
             reply.setCreatedDate(oldReply.getCreatedDate());

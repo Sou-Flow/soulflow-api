@@ -58,7 +58,7 @@ public abstract class CategoryMappper {
 			category.setDeleted(oldCategory.getDeleted());
 			return;
 		}
-        String code = "C" + String.format("%06d", categoryRepo.count() + 1);
+        String code = "C-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 		category.setCode(code);
 		category.setDeleted(false);
     }

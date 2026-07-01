@@ -14,5 +14,7 @@ public class OrderRequest {
     private String address;
     private OrderStatus status;
     private Long accountPk;
+    private java.math.BigDecimal shippingFee;
+    private String paymentMethod;
     private List<OrderDetailRequest> orderDetailRequests;  
 }

@@ -20,9 +20,8 @@ import lombok.Setter;
 @AllArgsConstructor
 @Getter
 @Setter
-@Builder
 @Entity
-@Table(name="order_details")
+@Table(name="orders_details")
 public class OrderDetail {
 	@Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,7 +30,7 @@ public class OrderDetail {
     @Column(name = "product_name_vn")
     private String nameVn;
 
-    @Column(name = "product_nam_eng")
+    @Column(name = "product_name_eng")
     private String nameEng;
 
     @Column(name = "product_price")

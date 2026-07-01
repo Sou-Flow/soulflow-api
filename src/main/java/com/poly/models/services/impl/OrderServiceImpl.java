@@ -21,10 +21,14 @@ import com.poly.models.enums.OrderStatus;
 import com.poly.models.enums.SortOrder;
 import com.poly.models.mappers.OrderMapper;
 import com.poly.models.repositories.OrderRepository;
+import com.poly.models.repositories.ProductRepository;
 import com.poly.models.requests.OrderRequest;
 import com.poly.models.responses.OrderResponse;
 import com.poly.models.responses.PageResponse;
 import com.poly.models.services.OrderService;
+
+import com.poly.models.responses.NotificationMessage;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -38,15 +42,45 @@ public class OrderServiceImpl implements OrderService {
 	
     private final OrderRepository orderRepo;
 
+    private final ProductRepository productRepo;
+
     private final CacheManager cacheManager;
+
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
-    @CachePut(value = "orderList", key = "#result.pk")
-    @CacheEvict(value = "orderPages", allEntries = true)
-    public OrderResponse save(OrderRequest resquest) {
-        Order order = orderMapper.toEntity(resquest);
+    @CachePut(value = "orderList", key = "T(Long).valueOf(#result.pk)")
+    @Caching(evict = {
+    	@CacheEvict(value = "orderPages", allEntries = true)
+    })
+    public OrderResponse save(OrderRequest request) {
+        Order order = orderMapper.toEntity(request);
+        
+        if (order.getOrderDetails() != null) {
+            order.getOrderDetails().forEach(detail -> {
+                int updatedRows = productRepo.decreaseQuantity(detail.getProduct().getPk(), detail.getQuantity());
+                if (updatedRows == 0) {
+                    throw new IllegalArgumentException("Sản phẩm không đủ số lượng tồn kho (hoặc không tồn tại).");
+                }
+                
+                int oldQuantity = detail.getProduct().getQuantity();
+                int newQuantity = oldQuantity - detail.getQuantity();
+                if (oldQuantity > 10 && newQuantity <= 10) {
+                    NotificationMessage msg = NotificationMessage.builder()
+                        .type("LOW_STOCK")
+                        .title("Cảnh báo kho")
+                        .message("Sản phẩm " + detail.getProduct().getNameVn() + " sắp hết hàng (" + newQuantity + " sản phẩm).")
+                        .referenceId(detail.getProduct().getCode())
+                        .timestamp(LocalDateTime.now().toString())
+                        .build();
+                    messagingTemplate.convertAndSend("/topic/admin.notifications", msg);
+                }
+            });
+        }
+        
         Order saved = orderRepo.save(order);
+        clearRelatedCaches(saved.getPk());
         return orderMapper.toResponse(saved);
     }
     
@@ -57,7 +91,18 @@ public class OrderServiceImpl implements OrderService {
     	@CacheEvict(value = "orderPages", allEntries = true)
     })
     public void softDeleteByPk(Long orderPk) {
-        orderRepo.softDelete(orderPk);
+        Order exist = orderRepo.findById(orderPk)
+                .orElseThrow(() -> new EntityNotFoundException("Order not found with Pk: " + orderPk));
+        
+        if (exist.getDeleted() == null || !exist.getDeleted()) {
+            if (exist.getOrderDetails() != null) {
+                exist.getOrderDetails().forEach(detail -> {
+                    productRepo.increaseQuantity(detail.getProduct().getPk(), detail.getQuantity());
+                });
+            }
+            orderRepo.softDelete(orderPk);
+            clearRelatedCaches(orderPk);
+        }
     }
 
     @Override
@@ -66,6 +111,10 @@ public class OrderServiceImpl implements OrderService {
         if (orderPk == null) throw new IllegalArgumentException("Can't not find order when pk is null");
         Order exist = orderRepo.findById(orderPk)
                 .orElseThrow(() -> new EntityNotFoundException("Order not found with Pk: " + orderPk));
+        // Force load lazy orderDetails để tránh trường hợp bị null khi serialize vào cache
+        if (exist.getOrderDetails() != null) {
+            exist.getOrderDetails().size();
+        }
         return orderMapper.toResponse(exist);
     }
 
@@ -82,8 +131,8 @@ public class OrderServiceImpl implements OrderService {
             Integer pageNumber,
             Integer pageSize) {
     	Sort sort = sortOrder == SortOrder.ASC
-	            ? Sort.by("id").ascending()
-	            : Sort.by("id").descending();
+	            ? Sort.by("pk").ascending()
+	            : Sort.by("pk").descending();
     	Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
     	Page<Order> page = orderRepo.filterOrders(keyword, fromDate, toDate, status, expired, deleted, pageable);
     	List<OrderResponse> responses = orderMapper.toResponseList(page.getContent());
@@ -107,8 +156,164 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public Integer markOrderAsPaidIfFullyPaid(Long orderPk) {
+        Integer effectedRows = orderRepo.markOrderAsPaidIfFullyPaid(orderPk);
+        if (effectedRows != null && effectedRows > 0) {
+            Order order = orderRepo.findById(orderPk).orElse(null);
+            if (order != null && order.getOrderDetails() != null) {
+                order.getOrderDetails().forEach(detail -> {
+                    productRepo.increaseSales(detail.getProduct().getPk(), detail.getQuantity());
+                });
+                
+                NotificationMessage msg = NotificationMessage.builder()
+                    .type("ORDER_PAID")
+                    .title("Đơn hàng đã thanh toán")
+                    .message("Đơn hàng " + order.getCode() + " vừa được thanh toán thành công.")
+                    .referenceId(order.getCode())
+                    .timestamp(LocalDateTime.now().toString())
+                    .build();
+                messagingTemplate.convertAndSend("/topic/admin.notifications", msg);
+            }
+            clearRelatedCaches(orderPk);
+        }
+        return effectedRows;
+    }
+
+    @Override
+    @Transactional
+    public void markOrderAsPaidUnconditionally(Long orderPk) {
+        Order order = orderRepo.findById(orderPk).orElse(null);
+        if (order != null && order.getStatus() != OrderStatus.PAID) {
+            order.setStatus(OrderStatus.PAID);
+            orderRepo.save(order);
+            if (order.getOrderDetails() != null) {
+                order.getOrderDetails().forEach(detail -> {
+                    productRepo.increaseSales(detail.getProduct().getPk(), detail.getQuantity());
+                });
+            }
+            
+            NotificationMessage msg = NotificationMessage.builder()
+                .type("ORDER_PAID")
+                .title("Đơn hàng đã thanh toán")
+                .message("Đơn hàng " + order.getCode() + " vừa được thanh toán thành công.")
+                .referenceId(order.getCode())
+                .timestamp(LocalDateTime.now().toString())
+                .build();
+            messagingTemplate.convertAndSend("/topic/admin.notifications", msg);
+            clearRelatedCaches(orderPk);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void increaseSalesForOrder(Long orderPk) {
+        Order order = orderRepo.findById(orderPk).orElse(null);
+        if (order != null && order.getOrderDetails() != null) {
+            order.getOrderDetails().forEach(detail -> {
+                productRepo.increaseSales(detail.getProduct().getPk(), detail.getQuantity());
+            });
+            
+            NotificationMessage msg = NotificationMessage.builder()
+                .type("NEW_ORDER")
+                .title("Đơn hàng mới (COD)")
+                .message("Đơn hàng " + order.getCode() + " vừa được đặt (thanh toán khi nhận hàng).")
+                .referenceId(order.getCode())
+                .timestamp(LocalDateTime.now().toString())
+                .build();
+            messagingTemplate.convertAndSend("/topic/admin.notifications", msg);
+            clearRelatedCaches(orderPk);
+        }
+    }
+
+    @Override
+    @Transactional
+    @Caching(evict = {
+    	@CacheEvict(value = "orderList", key = "#orderPk"),
+    	@CacheEvict(value = "orderPages", allEntries = true),
+        @CacheEvict(value = "productPages", allEntries = true)
+    })
+    public void updateStatus(Long orderPk, OrderStatus status) {
+        Order order = orderRepo.findById(orderPk)
+                .orElseThrow(() -> new EntityNotFoundException("Order not found with Pk: " + orderPk));
         
-        return orderRepo.markOrderAsPaidIfFullyPaid(orderPk);
+        if (status == OrderStatus.CANCELLED && order.getStatus() != OrderStatus.CANCELLED) {
+            order.setStatus(OrderStatus.CANCELLED);
+            if (order.getOrderDetails() != null) {
+                order.getOrderDetails().forEach(detail -> {
+                    productRepo.increaseQuantity(detail.getProduct().getPk(), detail.getQuantity());
+                });
+            }
+            orderRepo.save(order);
+            clearRelatedCaches(orderPk);
+        } else if (order.getStatus() != status) {
+            order.setStatus(status);
+            orderRepo.save(order);
+            // If marked as PAID manually, SePay logic also does it unconditionally but this is a fallback
+            if (status == OrderStatus.PAID && order.getOrderDetails() != null) {
+                order.getOrderDetails().forEach(detail -> {
+                    productRepo.increaseSales(detail.getProduct().getPk(), detail.getQuantity());
+                });
+                
+                NotificationMessage msg = NotificationMessage.builder()
+                    .type("ORDER_PAID")
+                    .title("Đơn hàng đã thanh toán")
+                    .message("Đơn hàng " + order.getCode() + " vừa được thanh toán thành công.")
+                    .referenceId(order.getCode())
+                    .timestamp(LocalDateTime.now().toString())
+                    .build();
+                messagingTemplate.convertAndSend("/topic/admin.notifications", msg);
+            }
+
+            String statusVn = switch(status) {
+                case PENDING -> "Chờ xử lý";
+                case WAITING_PAYMENT -> "Chờ thanh toán";
+                case PAID -> "Đã thanh toán";
+                case PROCESSING -> "Đang xử lý";
+                case SHIPPED -> "Đang giao hàng";
+                case DELIVERED -> "Đã giao hàng";
+                case CANCELLED -> "Đã hủy";
+            };
+
+            // Realtime update cho User khi trạng thái thay đổi
+            NotificationMessage userUpdateMsg = NotificationMessage.builder()
+                .type("ORDER_STATUS_CHANGED")
+                .title("Cập nhật trạng thái đơn hàng")
+                .message("Đơn hàng " + order.getCode() + " đã chuyển sang trạng thái " + statusVn)
+                .referenceId(String.valueOf(order.getPk()))
+                .status(status.name())
+                .timestamp(LocalDateTime.now().toString())
+                .build();
+            // Gửi qua kênh chung của user có kèm username để FE dễ filter, hoặc gửi kênh riêng của order đó
+            if (order.getAccount() != null && order.getAccount().getUsername() != null) {
+                messagingTemplate.convertAndSend("/topic/user.notifications." + order.getAccount().getUsername(), userUpdateMsg);
+            }
+            // Gửi thêm vào kênh riêng của đơn hàng (dùng khi khách đang xem chi tiết hoặc lịch sử đơn hàng đó)
+            messagingTemplate.convertAndSend("/topic/order." + order.getCode(), userUpdateMsg);
+
+            clearRelatedCaches(orderPk);
+        }
+    }
+
+    private void clearRelatedCaches(Long orderPk) {
+        if (cacheManager != null) {
+            org.springframework.cache.Cache orderPagesCache = cacheManager.getCache("orderPages");
+            if (orderPagesCache != null) orderPagesCache.clear();
+            org.springframework.cache.Cache orderListCache = cacheManager.getCache("orderList");
+            if (orderListCache != null) orderListCache.evict(orderPk);
+            
+            Order order = orderRepo.findById(orderPk).orElse(null);
+            if (order != null && order.getOrderDetails() != null) {
+                order.getOrderDetails().forEach(detail -> {
+                    Long productPk = detail.getProduct().getPk();
+                    org.springframework.cache.Cache productPagesCache = cacheManager.getCache("productPages");
+                    if (productPagesCache != null) productPagesCache.clear();
+                    org.springframework.cache.Cache productListCache = cacheManager.getCache("productList");
+                    if (productListCache != null) productListCache.evict(productPk);
+                    org.springframework.cache.Cache productDetailListCache = cacheManager.getCache("productDetailList");
+                    if (productDetailListCache != null) productDetailListCache.evict(productPk);
+                });
+            }
+        }
     }
 }

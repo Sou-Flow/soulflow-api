@@ -134,7 +134,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAll(Exception ex, HttpServletRequest request) {
         // Log the full stack trace here with your preferred logger:
         // log.error("Unhandled exception", ex);
-        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", request);
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request);
     }
 
     public record ErrorResponse(

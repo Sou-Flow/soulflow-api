@@ -57,20 +57,26 @@ public abstract class CartMapper {
 			cart.setExpired(oldCart.getExpired());
 			cart.setDeleted(oldCart.getDeleted());
 			cart.setAccount(oldCart.getAccount());
-			cart.calTotal();
-			return;
+		} else {
+			cart.setCode("CA-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+			cart.setCreatedDate(LocalDateTime.now());
+			cart.setExpiredDate(LocalDateTime.now().plusWeeks(2));
+			cart.setExpired(false);
+			if (request.getAccountPk() != null) {
+				Account account = new Account();
+				account.setPk(request.getAccountPk());
+				cart.setAccount(account);
+			} else {
+				cart.setAccount(null);
+			}
+			cart.setDeleted(false);
 		}
-		cart.setCode("CA" + String.format("%06d", cartRepo.count() + 1));
-		cart.setCreatedDate(LocalDateTime.now());
-		cart.setExpiredDate(LocalDateTime.now().plusDays(5));
-		cart.setExpired(false);
-		Account account = new Account();
-		account.setPk(request.getAccountPk());
-		cart.setAccount(account);
-		for (Item it : cart.getItems()) {
-			it.setCart(cart);
+		
+		if (cart.getItems() != null) {
+			for (Item it : cart.getItems()) {
+				it.setCart(cart);
+			}
 		}
 		cart.calTotal();
-		cart.setDeleted(false);
 	}
 }
