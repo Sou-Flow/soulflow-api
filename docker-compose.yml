@@ -21,8 +21,8 @@ services:
       - "9000:9000"   # S3 API
       - "9001:9001"   # Web console
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
@@ -58,7 +58,7 @@ services:
     container_name: sqlserver-db
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "Nguyen@12345"
+      MSSQL_SA_PASSWORD: "${DB_PASSWORD}"
     ports:
       - "1435:1433"
     volumes:
@@ -74,7 +74,7 @@ services:
           "-U",
           "sa",
           "-P",
-          "Nguyen@12345",
+          "${DB_PASSWORD}",
           "-C",
           "-Q",
           "SELECT 1"
