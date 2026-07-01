@@ -1,31 +1,92 @@
-version: '3.8'
-
 services:
-  # 1. Cấu hình SQL Server
-  # sqlserver:
-  #   image: mcr.microsoft.com/mssql/server:2022-latest
-  #   container_name: flowershop_sqlserver
-  #   environment:
-  #     - ACCEPT_EULA=Y
-  #     - MSSQL_SA_PASSWORD=FlowerShop@2026 # Bắt buộc pass khó: >= 8 ký tự, có chữ hoa, thường, số
-  #     - MSSQL_PID=Developer
-  #   ports:
-  #     - "1433:1433" # Ánh xạ port ra máy thật
-  #   volumes:
-  #     - sqlserver_data:/var/opt/mssql # Lưu lại data để tắt Docker không bị mất dữ liệu
-  #   restart: unless-stopped
 
-  # 2. Cấu hình Redis
   redis:
-    image: redis:7-alpine # Dùng bản alpine cho nhẹ máy
-    container_name: flowershop_redis
+    image: redis:latest
+    container_name: redis-cache
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
-# Khai báo nơi lưu trữ dữ liệu vĩnh viễn (Volumes)
+  minio:
+    image: minio/minio
+    container_name: minio-image-storage
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ollama:
+  #   image: ollama/ollama
+  #   container_name: ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama:/root/.ollama
+  #   restart: unless-stopped
+  #   entrypoint: >
+  #     sh -c "
+  #       ollama serve &
+  #       sleep 10 &&
+  #       ollama list | grep qwen || ollama pull qwen &&
+  #       wait
+  #     "
+  #   healthcheck:
+  #     test: ["CMD", "ollama", "list"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver-db
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Nguyen@12345"
+    ports:
+      - "1435:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ./init:/init
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/opt/mssql-tools18/bin/sqlcmd",
+          "-S",
+          "localhost",
+          "-U",
+          "sa",
+          "-P",
+          "Nguyen@12345",
+          "-C",
+          "-Q",
+          "SELECT 1"
+        ]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+    restart: unless-stopped
+
 volumes:
-  sqlserver_data:
   redis_data:
+  minio_data:
+  # ollama:
+  sqlserver_data:
