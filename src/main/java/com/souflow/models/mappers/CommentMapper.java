@@ -40,6 +40,7 @@ public abstract class CommentMapper {
 	@Mapping(target =  "photo", 			source = "account.photo")
 	@Mapping(target = "productPk", 			source = "product.pk")
 	@Mapping(target = "accountPk", 			source = "account.pk")
+	@Mapping(target = "role", 				source = "account.role.code")
 	@Mapping(target = "replyResponses", 	ignore = true)
 	@Named("basicResponse")
 	public abstract CommentResponse toBasicResponse(Comment comment);
@@ -50,6 +51,7 @@ public abstract class CommentMapper {
 	@Mapping(target =  "photo", 			source = "account.photo")
 	@Mapping(target = "productPk", 			source = "product.pk")
 	@Mapping(target = "accountPk", 			source = "account.pk")
+	@Mapping(target = "role", 				source = "account.role.code")
 	@Mapping(target = "replyResponses", 	source = "replies")
 	@Named("detailedResponse")
 	public abstract CommentResponse toDetailedResponse(Comment comment);

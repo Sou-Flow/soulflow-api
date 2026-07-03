@@ -265,6 +265,17 @@ public class AdminController {
 
     @PostMapping("/reply")
     ReplyResponse save(@RequestBody ReplyRequest request) {
+        try {
+            String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            if (username != null && !username.equals("anonymousUser")) {
+                AccountResponse acc = accountService.findByUsername(username);
+                if (acc != null && acc.getPk() != null) {
+                    request.setAccountPk(Long.valueOf(acc.getPk()));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return replyService.save(request);
     }
 
@@ -296,6 +307,17 @@ public class AdminController {
 
     @PostMapping("/comment")
     CommentResponse save(@RequestBody CommentRequest request) {
+        try {
+            String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            if (username != null && !username.equals("anonymousUser")) {
+                AccountResponse acc = accountService.findByUsername(username);
+                if (acc != null && acc.getPk() != null) {
+                    request.setAccountPk(Long.valueOf(acc.getPk()));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return commentService.save(request);
     }
 
