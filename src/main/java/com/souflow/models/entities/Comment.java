@@ -50,5 +50,6 @@ public class Comment {
 	private Account account;
     
     @OneToMany(mappedBy = "comment", fetch = FetchType.LAZY)
+    @org.hibernate.annotations.Where(clause = "del_if = 0")
     private List<Reply> replies = new ArrayList<>();
 }
