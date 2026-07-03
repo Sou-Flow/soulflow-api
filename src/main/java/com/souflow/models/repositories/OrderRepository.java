@@ -108,8 +108,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT SUM(o.total) FROM Order o WHERE o.status = :status AND o.createdDate >= :start AND o.createdDate < :end AND (o.deleted = false OR o.deleted IS NULL)")
     java.math.BigDecimal getRevenueByMonthRange(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, @Param("status") OrderStatus status);
 
-    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = :status AND o.createdDate >= :start AND o.createdDate < :end AND (o.deleted = false OR o.deleted IS NULL)")
-    Long countOrdersByMonthRange(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, @Param("status") OrderStatus status);
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.createdDate >= :start AND o.createdDate < :end AND (o.deleted = false OR o.deleted IS NULL)")
+    Long countOrdersByMonthRange(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     @Query("SELECT MONTH(o.createdDate), SUM(o.total) FROM Order o WHERE YEAR(o.createdDate) = :year AND o.status = :status AND (o.deleted = false OR o.deleted IS NULL) GROUP BY MONTH(o.createdDate)")
     java.util.List<Object[]> getMonthlyRevenueForYear(@Param("year") int year, @Param("status") OrderStatus status);

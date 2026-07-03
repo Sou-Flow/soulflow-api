@@ -39,7 +39,10 @@ public class ReplyServiceImpl implements ReplyService {
 	@Override
 	@Transactional
 	@CachePut(value = "replyList", key = "#result.pk")
-	@CacheEvict(value = "replyPages", allEntries = true)
+	@Caching(evict = {
+		@CacheEvict(value = "replyPages", allEntries = true),
+		@CacheEvict(value = "commentPages", allEntries = true)
+	})
 	public ReplyResponse save(ReplyRequest request) {
 		Reply reply = replyMapper.toEntity(request);
 		Reply saved = replyRepo.save(reply);
@@ -50,7 +53,8 @@ public class ReplyServiceImpl implements ReplyService {
 	@Transactional
 	@Caching(evict = {
 		@CacheEvict(value = "replyList", key = "#replyPk"),
-		@CacheEvict(value = "replyPages", allEntries = true)
+		@CacheEvict(value = "replyPages", allEntries = true),
+		@CacheEvict(value = "commentPages", allEntries = true)
 	})
 	public void softDeleteByPk(Long replyPk) {
 		replyRepo.softDelete(replyPk);

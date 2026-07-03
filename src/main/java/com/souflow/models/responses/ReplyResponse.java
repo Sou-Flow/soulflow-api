@@ -19,5 +19,7 @@ public class ReplyResponse {
     
     private String accountPk;
     
+    private String role;
+    
     private String commentPk;
 }

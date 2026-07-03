@@ -107,6 +107,9 @@ public class AccountServiceImpl implements AccountService {
 				)
 			);
 		} catch (AuthenticationException e) {
+			if (e instanceof org.springframework.security.authentication.DisabledException) {
+				throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Tài khoản của bạn đã bị khoá");
+			}
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
 		}
 		

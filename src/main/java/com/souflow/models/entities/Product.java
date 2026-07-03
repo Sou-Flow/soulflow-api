@@ -76,6 +76,7 @@ public class Product {
     private List<ProductImage> productImages = new ArrayList<>();
     
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+    @org.hibernate.annotations.Where(clause = "del_if = 0")
     private List<Comment> comments = new ArrayList<>();
 
     @ManyToMany

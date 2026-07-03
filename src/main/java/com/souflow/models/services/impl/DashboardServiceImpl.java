@@ -38,7 +38,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final ProductRepository productRepository;
 
     @Override
-    public DashboardResponse getDashboardData(String filter) {
+    public DashboardResponse getDashboardData(String filter, LocalDate startDate, LocalDate endDate) {
         LocalDateTime now = LocalDateTime.now();
         
         LocalDateTime currentStart;
@@ -46,29 +46,50 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDateTime prevStart;
         LocalDateTime prevEnd;
 
-        if ("today".equalsIgnoreCase(filter)) {
+        if ("custom".equalsIgnoreCase(filter) && startDate != null && endDate != null) {
+            currentStart = startDate.atStartOfDay();
+            currentEnd = endDate.plusDays(1).atStartOfDay();
+            
+            long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1;
+            prevStart = currentStart.minusDays(daysBetween);
+            prevEnd = currentStart;
+        } else if ("today".equalsIgnoreCase(filter)) {
             currentStart = now.toLocalDate().atStartOfDay();
-            currentEnd = now.toLocalDate().atTime(LocalTime.MAX);
+            currentEnd = currentStart.plusDays(1);
             
             prevStart = currentStart.minusDays(1);
-            prevEnd = currentEnd.minusDays(1);
+            prevEnd = currentStart;
         } else if ("week".equalsIgnoreCase(filter)) {
             // Adjust to Monday of the current week
             int currentDayOfWeek = now.getDayOfWeek().getValue();
             currentStart = now.toLocalDate().minusDays(currentDayOfWeek - 1).atStartOfDay();
-            currentEnd = currentStart.toLocalDate().plusDays(6).atTime(LocalTime.MAX);
+            currentEnd = currentStart.plusWeeks(1);
             
             prevStart = currentStart.minusWeeks(1);
-            prevEnd = currentEnd.toLocalDate().minusWeeks(1).atTime(LocalTime.MAX);
+            prevEnd = currentStart;
+        } else if ("year".equalsIgnoreCase(filter)) {
+            // Adjust to current year
+            currentStart = LocalDateTime.of(now.getYear(), 1, 1, 0, 0);
+            currentEnd = currentStart.plusYears(1);
+            
+            prevStart = currentStart.minusYears(1);
+            prevEnd = currentStart;
+        } else if ("all".equalsIgnoreCase(filter)) {
+            // All time
+            currentStart = LocalDateTime.of(2000, 1, 1, 0, 0);
+            currentEnd = LocalDateTime.of(9999, 1, 1, 0, 0);
+            
+            prevStart = currentStart;
+            prevEnd = currentStart;
         } else {
             // Default to month
             YearMonth currentYearMonth = YearMonth.of(now.getYear(), now.getMonth());
             currentStart = currentYearMonth.atDay(1).atStartOfDay();
-            currentEnd = currentYearMonth.atEndOfMonth().atTime(LocalTime.MAX);
+            currentEnd = currentYearMonth.plusMonths(1).atDay(1).atStartOfDay();
             
             YearMonth previousYearMonth = currentYearMonth.minusMonths(1);
             prevStart = previousYearMonth.atDay(1).atStartOfDay();
-            prevEnd = previousYearMonth.atEndOfMonth().atTime(LocalTime.MAX);
+            prevEnd = currentStart;
         }
 
         OrderStatus status = OrderStatus.DELIVERED;
@@ -82,10 +103,10 @@ public class DashboardServiceImpl implements DashboardService {
 
         double revenueChangePercentage = calculatePercentageChange(currentTotalRevenue, prevTotalRevenue);
 
-        Long currentNewOrders = orderRepository.countOrdersByMonthRange(currentStart, currentEnd, status);
+        Long currentNewOrders = orderRepository.countOrdersByMonthRange(currentStart, currentEnd);
         if (currentNewOrders == null) currentNewOrders = 0L;
 
-        Long prevNewOrders = orderRepository.countOrdersByMonthRange(prevStart, prevEnd, status);
+        Long prevNewOrders = orderRepository.countOrdersByMonthRange(prevStart, prevEnd);
         if (prevNewOrders == null) prevNewOrders = 0L;
 
         double ordersChangePercentage = calculatePercentageChange(BigDecimal.valueOf(currentNewOrders), BigDecimal.valueOf(prevNewOrders));
