@@ -85,4 +85,10 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     @Transactional
     @Query("UPDATE Account a SET a.deleted = true WHERE a.pk = :pk")
     void softDelete(@Param("pk") Long pk);
+
+    @Query("SELECT COUNT(a) FROM Account a WHERE (a.deleted = false OR a.deleted IS NULL) AND (a.disabled = false OR a.disabled IS NULL)")
+    long countActiveUsers();
+
+    @Query("SELECT COUNT(a) FROM Account a WHERE a.createdDate >= :start AND a.createdDate < :end AND (a.deleted = false OR a.deleted IS NULL) AND (a.disabled = false OR a.disabled IS NULL)")
+    long countUsersByMonthRange(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }

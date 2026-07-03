@@ -362,7 +362,7 @@ public class AdminController {
             @RequestParam(defaultValue = "5") Integer pageSize
 			) {
 		orderService.checkAndExpireBeforePagination(keyword, fromDate, toDate, status, expired, deleted);
-		return orderService.filterAndPaginateOrders(keyword, fromDate, toDate, status, expired, deleted, sortOrder, pageNumber, pageSize);
+		return orderService.filterAndPaginateOrders(keyword, null, fromDate, toDate, status, expired, deleted, sortOrder, pageNumber, pageSize);
 	}
 
 

@@ -18,4 +18,6 @@ public class AuthResponse {
 	private String photo;
 
 	private String url;
+
+	private String roleCode;
 }
