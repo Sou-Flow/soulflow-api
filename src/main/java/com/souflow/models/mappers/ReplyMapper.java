@@ -37,6 +37,7 @@ public abstract class ReplyMapper {
     @Mapping(target = "fullname",       source = "account.fullname")
     @Mapping(target = "photo",          source = "account.photo")
     @Mapping(target = "accountPk",      source = "account.pk")
+    @Mapping(target = "role",           source = "account.role.code")
     @Mapping(target = "commentPk",      source = "comment.pk")
     public abstract ReplyResponse toResponse(Reply reply);
 

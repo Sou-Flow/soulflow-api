@@ -74,7 +74,7 @@ public class CommentServiceImpl implements CommentService {
 	            : Sort.by("id").descending();
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
 		Page<Comment> page = commentRepo.filterComments(keyword, fromDate, toDate, deleted, pageable);
-		List<CommentResponse> responses = commentMapper.toBasicResponseList(page.getContent());
+		List<CommentResponse> responses = commentMapper.toDetailedResponseList(page.getContent());
 		return new PageResponse<>(page, responses);
 	}
 }

@@ -84,8 +84,13 @@ public abstract class AccountMapper {
 				account.setCredentialExpiredDate(oldAccount.getCredentialExpiredDate());
 			}
 
+			if (request.getPhoto() == null || request.getPhoto().isBlank()) {
+				account.setPhoto(oldAccount.getPhoto());
+			}
+
 			account.setCreatedDate(oldAccount.getCreatedDate());
 			account.setDisabled(request.getDisabled() == null ? false : request.getDisabled());
+			account.setDeleted(oldAccount.getDeleted());
 			return;
 		}
 		// new account — must have a password

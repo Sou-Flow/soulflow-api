@@ -23,5 +23,7 @@ public class CommentResponse {
     
     private String accountPk;
     
+    private String role;
+    
     private List<ReplyResponse> replyResponses;
 }
