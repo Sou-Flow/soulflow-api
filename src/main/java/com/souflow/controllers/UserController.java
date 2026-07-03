@@ -193,8 +193,21 @@ public class UserController {
             @RequestParam(defaultValue = "0") Integer pageNumber,
             @RequestParam(defaultValue = "5") Integer pageSize
 	) {
+		Long accountPk = null;
+        try {
+            String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            if (username != null && !username.equals("anonymousUser")) {
+                AccountResponse acc = accountService.findByUsername(username);
+                if (acc != null && acc.getPk() != null) {
+                    accountPk = Long.valueOf(acc.getPk());
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         orderService.checkAndExpireBeforePagination(keyword, fromDate, toDate, status, expired, deleted);
-        return orderService.filterAndPaginateOrders(keyword, fromDate, toDate, status, expired, deleted, sortOrder, pageNumber, pageSize);
+        return orderService.filterAndPaginateOrders(keyword, accountPk, fromDate, toDate, status, expired, deleted, sortOrder, pageNumber, pageSize);
     }
 
     /* payment */

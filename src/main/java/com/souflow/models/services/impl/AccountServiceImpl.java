@@ -91,6 +91,7 @@ public class AccountServiceImpl implements AccountService {
 				.fullname(account.getFullname())
 				.email(account.getEmail())
 				.photo(account.getPhoto())
+				.roleCode(account.getRole().getCode().name())
 				.build();
 	}
 
@@ -123,6 +124,7 @@ public class AccountServiceImpl implements AccountService {
 				.fullname(account.getFullname())
 				.email(account.getEmail())
 				.photo(account.getPhoto())
+				.roleCode(account.getRole().getCode().name())
 				.url(imageService.getPublicUrl(account.getPhoto()))
 				.build();
 		} catch (Exception e) {
@@ -167,9 +169,11 @@ public class AccountServiceImpl implements AccountService {
 
             return AuthResponse.builder()
 				.token(token)
+				.pk(String.valueOf(account.getPk()))
 				.fullname(account.getFullname())
 				.email(account.getEmail())
 				.photo(account.getPhoto())
+				.roleCode(account.getRole().getCode().name())
 				.build();
 
         } catch (Exception e) {

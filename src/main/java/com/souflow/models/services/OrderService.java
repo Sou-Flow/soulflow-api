@@ -14,6 +14,7 @@ public interface OrderService {
 	OrderResponse findByPk(Long orderPk);
 	PageResponse<OrderResponse> filterAndPaginateOrders(
 			String keyword,
+			Long accountPk,
             LocalDateTime fromDate,
             LocalDateTime toDate,
             OrderStatus status,

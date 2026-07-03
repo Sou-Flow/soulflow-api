@@ -119,9 +119,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    @Cacheable(value = "orderPages", key = "#keyword + '_' + #fromDate + '_' + #toDate + '_' + #status + '_' + #expired + '_' + #deleted + '_' + #sortOrder + '_' + #pageNumber + '_' + #pageSize")
+    @Cacheable(value = "orderPages", key = "#keyword + '_' + #accountPk + '_' + #fromDate + '_' + #toDate + '_' + #status + '_' + #expired + '_' + #deleted + '_' + #sortOrder + '_' + #pageNumber + '_' + #pageSize")
     public PageResponse<OrderResponse> filterAndPaginateOrders(
             String keyword,
+            Long accountPk,
             LocalDateTime fromDate,
             LocalDateTime toDate,
             OrderStatus status,
@@ -134,7 +135,7 @@ public class OrderServiceImpl implements OrderService {
 	            ? Sort.by("pk").ascending()
 	            : Sort.by("pk").descending();
     	Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
-    	Page<Order> page = orderRepo.filterOrders(keyword, fromDate, toDate, status, expired, deleted, pageable);
+    	Page<Order> page = orderRepo.filterOrders(keyword, accountPk, fromDate, toDate, status, expired, deleted, pageable);
     	List<OrderResponse> responses = orderMapper.toResponseList(page.getContent());
         return new PageResponse<>(page, responses);
     }
@@ -157,6 +158,10 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+    	@CacheEvict(value = "orderList", key = "#orderPk"),
+    	@CacheEvict(value = "orderPages", allEntries = true)
+    })
     public Integer markOrderAsPaidIfFullyPaid(Long orderPk) {
         Integer effectedRows = orderRepo.markOrderAsPaidIfFullyPaid(orderPk);
         if (effectedRows != null && effectedRows > 0) {
@@ -182,6 +187,10 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+    	@CacheEvict(value = "orderList", key = "#orderPk"),
+    	@CacheEvict(value = "orderPages", allEntries = true)
+    })
     public void markOrderAsPaidUnconditionally(Long orderPk) {
         Order order = orderRepo.findById(orderPk).orElse(null);
         if (order != null && order.getStatus() != OrderStatus.PAID) {

@@ -25,7 +25,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         FROM Order o
         LEFT JOIN o.account a
         WHERE
-            (:deleted IS NULL OR o.deleted = :deleted)
+            (:accountPk IS NULL OR a.pk = :accountPk)
+            AND (:deleted IS NULL OR o.deleted = :deleted)
             AND (:expired IS NULL OR o.expired = :expired)
             AND (
                 :keyword IS NULL
@@ -39,6 +40,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     """)
     Page<Order> filterOrders(
             @Param("keyword") String keyword,
+            @Param("accountPk") Long accountPk,
             @Param("fromDate") LocalDateTime fromDate,
             @Param("toDate") LocalDateTime toDate,
             @Param("status") OrderStatus status,
@@ -102,4 +104,19 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         ) >= total
     """, nativeQuery = true)
     int markOrderAsPaidIfFullyPaid(@Param("orderPk") Long orderPk);
+
+    @Query("SELECT SUM(o.total) FROM Order o WHERE o.status = :status AND o.createdDate >= :start AND o.createdDate < :end AND (o.deleted = false OR o.deleted IS NULL)")
+    java.math.BigDecimal getRevenueByMonthRange(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, @Param("status") OrderStatus status);
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = :status AND o.createdDate >= :start AND o.createdDate < :end AND (o.deleted = false OR o.deleted IS NULL)")
+    Long countOrdersByMonthRange(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, @Param("status") OrderStatus status);
+
+    @Query("SELECT MONTH(o.createdDate), SUM(o.total) FROM Order o WHERE YEAR(o.createdDate) = :year AND o.status = :status AND (o.deleted = false OR o.deleted IS NULL) GROUP BY MONTH(o.createdDate)")
+    java.util.List<Object[]> getMonthlyRevenueForYear(@Param("year") int year, @Param("status") OrderStatus status);
+
+    @Query("SELECT c.nameVn, SUM(od.subtotal) FROM OrderDetail od JOIN od.order o JOIN od.product p JOIN p.category c WHERE o.status = :status AND (o.deleted = false OR o.deleted IS NULL) GROUP BY c.nameVn")
+    java.util.List<Object[]> getRevenueByCategory(@Param("status") OrderStatus status);
+
+    @Query("SELECT p.code, p.nameVn, SUM(od.quantity), SUM(od.subtotal) FROM OrderDetail od JOIN od.order o JOIN od.product p WHERE o.status = :status AND (o.deleted = false OR o.deleted IS NULL) GROUP BY p.code, p.nameVn ORDER BY SUM(od.quantity) DESC")
+    java.util.List<Object[]> getTopSellingProducts(@Param("status") OrderStatus status, Pageable pageable);
 }
