@@ -35,9 +35,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             AND (:maxPrice IS NULL OR p.price <= :maxPrice)
             AND (
                 :keyword IS NULL
-                OR LOWER(p.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(p.nameVn) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(p.nameEng) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR p.code LIKE :keyword
+                OR p.nameVn LIKE :keyword
+                OR p.nameEng LIKE :keyword
             )
             AND (:fromDate IS NULL OR p.createdDate >= :fromDate)
             AND (:toDate IS NULL OR p.createdDate <= :toDate)
@@ -93,4 +93,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 	@Transactional
 	@Query("UPDATE Product p SET p.sales = (CASE WHEN p.sales IS NULL THEN 0L ELSE p.sales END) + :amount WHERE p.pk = :pk")
 	int increaseSales(@Param("pk") Long pk, @Param("amount") Integer amount);
+
+    @Query("SELECT COUNT(p) FROM Product p WHERE (p.deleted = false OR p.deleted IS NULL)")
+    long countActiveProducts();
+
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.createdDate >= :start AND p.createdDate < :end AND (p.deleted = false OR p.deleted IS NULL)")
+    long countProductsByMonthRange(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT p.code, p.nameVn, p.quantity FROM Product p WHERE (p.deleted = false OR p.deleted IS NULL) AND p.quantity <= :threshold")
+    List<Object[]> getLowStockProducts(@Param("threshold") int threshold);
 }

@@ -53,7 +53,7 @@ public class SecurityConfig {
 	        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 	        .authorizeHttpRequests(auth -> auth
 	            .requestMatchers("/admin/**").hasAuthority("ADMIN")
-	            .requestMatchers("/user/**").hasAuthority("USER")
+	            .requestMatchers("/user/**").hasAnyAuthority("USER", "ADMIN")
 	            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 	            .anyRequest().permitAll()
 	        );

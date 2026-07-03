@@ -118,7 +118,8 @@ public class ProductServiceImpl implements ProductService {
 		};
 		
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
-		Page<Product> page = productRepo.filterProducts(minPrice, maxPrice, categoryPk, keyword, customised, available, deleted, fromDate, toDate, pageable);
+		String searchKeyword = (keyword != null && !keyword.trim().isEmpty()) ? "%" + keyword.trim() + "%" : null;
+		Page<Product> page = productRepo.filterProducts(minPrice, maxPrice, categoryPk, searchKeyword, customised, available, deleted, fromDate, toDate, pageable);
 		List<ProductResponse> responses = productMapper.toBasicResponseList(page.getContent());
         return new PageResponse<>(page, responses);
 
