@@ -10,6 +10,9 @@ import com.souflow.models.services.DashboardService;
 
 import lombok.RequiredArgsConstructor;
 
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
+
 @RestController
 @RequestMapping("/admin/dashboard")
 @RequiredArgsConstructor
@@ -18,7 +21,10 @@ public class DashboardController {
     private final DashboardService dashboardService;
 
     @GetMapping
-    public ResponseEntity<DashboardResponse> getDashboard(@org.springframework.web.bind.annotation.RequestParam(required = false, defaultValue = "month") String filter) {
-        return ResponseEntity.ok(dashboardService.getDashboardData(filter));
+    public ResponseEntity<DashboardResponse> getDashboard(
+            @org.springframework.web.bind.annotation.RequestParam(required = false, defaultValue = "month") String filter,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ResponseEntity.ok(dashboardService.getDashboardData(filter, startDate, endDate));
     }
 }
