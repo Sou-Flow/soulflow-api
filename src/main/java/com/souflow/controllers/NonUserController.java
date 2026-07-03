@@ -43,6 +43,11 @@ public class NonUserController  {
         return adminController.login(request);
     }
 
+    @PostMapping("/register")
+    AuthResponse register(@RequestBody com.souflow.models.requests.AccountRequest request) {
+        return accountService.register(request);
+    }
+
     @PostMapping("/google/login")
     AuthResponse googleLogin(@RequestBody GoogleTokenDTO token) {
         return adminController.googleLogin(token);
