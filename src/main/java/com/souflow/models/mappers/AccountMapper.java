@@ -52,6 +52,16 @@ public abstract class AccountMapper {
 	@Named("basicResponse")
 	public abstract AccountResponse toBasicResponse(Account account);
 
+	@AfterMapping
+	protected void afterToBasicResponse(@MappingTarget AccountResponse response) {
+		try {
+			if (imageService != null) {
+				String url = imageService.getPublicUrl(response.getPhoto());
+				response.setUrl(url);
+			}
+		} catch (Exception e) {}
+	}
+
 	@Mapping(target = "url", 					ignore = true)
 	@Mapping(target = "roleResponse", 			source = "role")
 	@Mapping(target = "cartResponses", 			source = "carts")
@@ -88,8 +98,16 @@ public abstract class AccountMapper {
 				account.setPhoto(oldAccount.getPhoto());
 			}
 
+			if (request.getEmail() == null || request.getEmail().isBlank()) {
+				account.setEmail(oldAccount.getEmail());
+			}
+			
+			if (request.getRoleRequest() == null) {
+				account.setRole(oldAccount.getRole());
+			}
+
 			account.setCreatedDate(oldAccount.getCreatedDate());
-			account.setDisabled(request.getDisabled() == null ? false : request.getDisabled());
+			account.setDisabled(request.getDisabled() == null ? oldAccount.getDisabled() : request.getDisabled());
 			account.setDeleted(oldAccount.getDeleted());
 			return;
 		}

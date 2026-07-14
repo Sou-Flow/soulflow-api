@@ -7,4 +7,5 @@ public class OrderDetailRequest {
     private Long pk;
     private Integer quantity;
     private Long productPk;
+    private java.math.BigDecimal price;
 }

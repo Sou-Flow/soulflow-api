@@ -35,7 +35,7 @@ public class CartServiceImpl implements CartService {
 
     private final CartRepository cartRepo;                    
     private final CartMapper cartMapper;
-    private CacheManager cacheManager;
+    private final CacheManager cacheManager;
 
     @Override
     @Transactional
