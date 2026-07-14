@@ -134,7 +134,7 @@ public class ProductServiceImpl implements ProductService {
 
 	@org.springframework.scheduling.annotation.Scheduled(fixedDelay = 900000)
 	public void refreshTopSalesCache() {
-		List<Product> products = productRepo.findTop12ByDeletedFalseOrderBySalesDesc();
+		List<Product> products = productRepo.findTop12ByDeletedFalseAndCustomisedFalseOrderBySalesDesc();
 		this.topSalesCache = productMapper.toBasicResponseList(products);
 	}
 

@@ -57,7 +57,7 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponse save(OrderRequest request) {
         Order order = orderMapper.toEntity(request);
         
-        if (order.getOrderDetails() != null) {
+        if (request.getPk() == null && order.getOrderDetails() != null) {
             order.getOrderDetails().forEach(detail -> {
                 int updatedRows = productRepo.decreaseQuantity(detail.getProduct().getPk(), detail.getQuantity());
                 if (updatedRows == 0) {
@@ -137,6 +137,31 @@ public class OrderServiceImpl implements OrderService {
     	Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
     	Page<Order> page = orderRepo.filterOrders(keyword, accountPk, fromDate, toDate, status, expired, deleted, pageable);
     	List<OrderResponse> responses = orderMapper.toResponseList(page.getContent());
+        return new PageResponse<>(page, responses);
+    }
+
+    @Override
+    @Cacheable(value = "orderPages", key = "'active_' + #keyword + '_' + #sortOrder + '_' + #pageNumber + '_' + #pageSize")
+    public PageResponse<OrderResponse> filterAndPaginateActiveOrders(
+            String keyword,
+            SortOrder sortOrder,
+            Integer pageNumber,
+            Integer pageSize
+    ) {
+        checkAndExpireBeforePagination(keyword, null, null, null, null, false);
+        
+        Sort sort = sortOrder == SortOrder.ASC
+                ? Sort.by("createdDate").ascending()
+                : Sort.by("createdDate").descending();
+
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
+
+        Page<Order> page = orderRepo.filterActiveOrders(
+                keyword,
+                pageable
+        );
+
+        List<OrderResponse> responses = orderMapper.toResponseList(page.getContent());
         return new PageResponse<>(page, responses);
     }
 
@@ -223,10 +248,13 @@ public class OrderServiceImpl implements OrderService {
                 productRepo.increaseSales(detail.getProduct().getPk(), detail.getQuantity());
             });
             
+            String title = "STORE".equalsIgnoreCase(order.getPaymentMethod()) ? "Đơn hàng mới (Tại cửa hàng)" : "Đơn hàng mới (COD)";
+            String methodText = "STORE".equalsIgnoreCase(order.getPaymentMethod()) ? "nhận tại cửa hàng" : "thanh toán khi nhận hàng";
+            
             NotificationMessage msg = NotificationMessage.builder()
                 .type("NEW_ORDER")
-                .title("Đơn hàng mới (COD)")
-                .message("Đơn hàng " + order.getCode() + " vừa được đặt (thanh toán khi nhận hàng).")
+                .title(title)
+                .message("Đơn hàng " + order.getCode() + " vừa được đặt (" + methodText + ").")
                 .referenceId(order.getCode())
                 .timestamp(LocalDateTime.now().toString())
                 .build();

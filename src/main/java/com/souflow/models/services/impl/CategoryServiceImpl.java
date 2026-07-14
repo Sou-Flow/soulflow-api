@@ -69,7 +69,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Cacheable(value = "categories", key = "'category_selection'")
     public List<CategoryResponse> findAll() {
-        List<Category> categories = categoryRepo.findAll();
+        List<Category> categories = categoryRepo.findAllActive();
         return categoryMapper.toBasicResponseList(categories);
     }
 

@@ -35,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 import com.souflow.models.services.AccountService;
 import com.souflow.models.services.CartService;
 import com.souflow.models.services.CommentService;
+import com.souflow.models.services.ImageService;
 import com.souflow.models.services.OrderService;
 import com.souflow.models.services.PaymentService;
 import com.souflow.models.services.ReplyService;
@@ -45,6 +46,7 @@ import com.souflow.models.services.ShippingService;
 @RequiredArgsConstructor
 public class UserController {
     
+    private final ImageService imageService;
     private final AccountService accountService;
     private final CartService cartService;
     private final CommentService commentService;
@@ -57,6 +59,29 @@ public class UserController {
     public AccountResponse getCurrentUser() {
         String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
         return accountService.findByUsername(username);
+    }
+
+    @PutMapping("/update-profile")
+    public AccountResponse updateProfile(
+        @org.springframework.web.bind.annotation.RequestPart("account") com.souflow.models.requests.AccountRequest request,
+        @org.springframework.web.bind.annotation.RequestPart(value = "file", required = false) org.springframework.web.multipart.MultipartFile file) throws Exception {
+        
+        String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        AccountResponse acc = accountService.findByUsername(username);
+        if (acc == null) {
+            throw new RuntimeException("User not found");
+        }
+        
+        request.setPk(Long.valueOf(acc.getPk()));
+        request.setUsername(acc.getUsername());
+        
+        if (file != null) {
+            request.setPhoto(imageService.upload(file));
+        } else {
+            request.setPhoto(acc.getPhoto());
+        }
+
+        return accountService.save(request);
     }
 
     /* cart */
@@ -146,15 +171,15 @@ public class UserController {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        if ("COD".equalsIgnoreCase(request.getPaymentMethod())) {
+        if ("COD".equalsIgnoreCase(request.getPaymentMethod()) || "STORE".equalsIgnoreCase(request.getPaymentMethod())) {
             request.setStatus(OrderStatus.PENDING);
         } else {
             request.setStatus(OrderStatus.WAITING_PAYMENT);
         }
         OrderResponse orderResponse = orderService.save(request);
         
-        if ("COD".equalsIgnoreCase(request.getPaymentMethod())) {
-            // COD: tăng sales ngay và gửi thông báo WebSocket
+        if ("COD".equalsIgnoreCase(request.getPaymentMethod()) || "STORE".equalsIgnoreCase(request.getPaymentMethod())) {
+            // COD hoặc STORE: tăng sales ngay và gửi thông báo WebSocket
             orderService.increaseSalesForOrder(Long.valueOf(orderResponse.getPk()));
         } else {
             // Chuyển khoản: chỉ tăng sales khi đã thanh toán đủ

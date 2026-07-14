@@ -18,4 +18,6 @@ public class CategoryRequest {
 	private String descriptionVn;
 	
 	private String descriptionEng;
+	
+	private Boolean deleted;
 }
