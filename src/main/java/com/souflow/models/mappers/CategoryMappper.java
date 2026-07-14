@@ -49,13 +49,19 @@ public abstract class CategoryMappper {
 	public abstract List<CategoryResponse> toDetailResponseList(List<Category> categories);
 
 	@AfterMapping
-    protected void afterToEntity(@MappingTarget Category category) {
+    protected void afterToEntity(CategoryRequest request, @MappingTarget Category category) {
 		Long pk = category.getPk();
 		if (pk != null) {
 			Category oldCategory = categoryRepo.findById(pk).
 					orElseThrow(() -> new EntityNotFoundException("Category not found with pk: " + pk));
 			category.setCode(oldCategory.getCode());
-			category.setDeleted(oldCategory.getDeleted());
+			
+			// Allow overriding 'deleted' status if it is passed in the request (e.g. for restoring)
+			if (request.getDeleted() != null) {
+			    category.setDeleted(request.getDeleted());
+			} else {
+			    category.setDeleted(oldCategory.getDeleted());
+			}
 			return;
 		}
         String code = "C-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();

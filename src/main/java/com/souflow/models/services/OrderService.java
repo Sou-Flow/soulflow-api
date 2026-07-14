@@ -24,6 +24,12 @@ public interface OrderService {
             Integer pageNumber,
             Integer pageSize
     );
+	PageResponse<OrderResponse> filterAndPaginateActiveOrders(
+			String keyword,
+            SortOrder sortOrder,
+            Integer pageNumber,
+            Integer pageSize
+    );
     void checkAndExpireBeforePagination(
         String keyword,
         LocalDateTime fromDate,

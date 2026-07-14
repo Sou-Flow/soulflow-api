@@ -62,7 +62,7 @@ public abstract class OrderDetailMapper {
 
 		orderDetail.setNameVn(product.getNameVn());
 		orderDetail.setNameEng(product.getNameEng());
-		orderDetail.setPrice(product.getPrice());
+		orderDetail.setPrice(request.getPrice() != null ? request.getPrice() : product.getPrice());
 		orderDetail.setSubtotal(orderDetail.getPrice().multiply(BigDecimal.valueOf(orderDetail.getQuantity())));
 		orderDetail.setProduct(product);
 	}
