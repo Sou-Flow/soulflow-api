@@ -74,7 +74,13 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     public String getPublicUrl(String objectName) throws Exception {
-        return props.url() + "/" + props.bucket() + "/" + "/" + objectName;
+        if (objectName == null || objectName.isBlank()) {
+            return null;
+        }
+        if (objectName.startsWith("http://") || objectName.startsWith("https://")) {
+            return objectName;
+        }
+        return props.url() + "/" + props.bucket() + "/" + objectName;
     }
 
     //download file

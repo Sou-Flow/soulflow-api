@@ -21,7 +21,7 @@ import com.souflow.models.entities.Product;
 public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findByCode(String code);
 
-    List<Product> findTop12ByDeletedFalseOrderBySalesDesc();
+    List<Product> findTop12ByDeletedFalseAndCustomisedFalseOrderBySalesDesc();
 
 	@Query("""
         SELECT p

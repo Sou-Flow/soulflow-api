@@ -49,6 +49,25 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             Pageable pageable
     );
     
+    @Query("""
+        SELECT o
+        FROM Order o
+        LEFT JOIN o.account a
+        WHERE
+            (o.deleted = false OR o.deleted IS NULL)
+            AND o.status NOT IN ('CANCELLED', 'DELIVERED')
+            AND (
+                :keyword IS NULL
+                OR LOWER(o.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(a.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(o.fullname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+            )
+    """)
+    Page<Order> filterActiveOrders(
+            @Param("keyword") String keyword,
+            Pageable pageable
+    );
+    
     @Modifying
     @Transactional
     @Query("""

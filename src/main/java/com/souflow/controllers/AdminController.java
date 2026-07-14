@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -108,6 +109,8 @@ public class AdminController {
         return accountService.findByEmail(email);
     }
 
+
+
     @GetMapping("/account")
     PageResponse<AccountResponse> filterAndPaginateAccounts(
         @RequestParam(required = false) String keyword,
@@ -130,8 +133,9 @@ public class AdminController {
     }
 
     @DeleteMapping("/category/{pk}")
-    void deleteCategoryByPk(@PathVariable Long pk) {
+    org.springframework.http.ResponseEntity<?> deleteCategoryByPk(@PathVariable Long pk) {
         categoryService.softDeleteByPk(pk);
+        return org.springframework.http.ResponseEntity.ok().body(java.util.Map.of("message", "Deleted successfully"));
     }
 
     @GetMapping("/category/{pk}")
@@ -251,7 +255,7 @@ public class AdminController {
 			@RequestParam(required = false) LocalDateTime fromDate,
 			@RequestParam(required = false) LocalDateTime toDate,
 			@RequestParam(required = false) Long categoryPk,
-            @RequestParam(defaultValue = "false") Boolean customised, 
+            @RequestParam(required = false) Boolean customised, 
 			@RequestParam(defaultValue = "false") Boolean available,
 			@RequestParam(defaultValue = "false") Boolean deleted,
 			@RequestParam(defaultValue = "DESC") SortOrder sortOrder, 
@@ -360,6 +364,12 @@ public class AdminController {
 
         return orderResponse;
 	}
+
+	@PutMapping("/order/{pk}/status")
+	org.springframework.http.ResponseEntity<?> updateOrderStatus(@PathVariable Long pk, @RequestParam OrderStatus status) {
+		orderService.updateStatus(pk, status);
+		return org.springframework.http.ResponseEntity.ok().body(java.util.Map.of("message", "Cập nhật trạng thái thành công"));
+	}
 	
 	@DeleteMapping("/order/{pk}")
 	void deleteOrderByPk(@PathVariable Long pk) {
@@ -386,7 +396,16 @@ public class AdminController {
 		orderService.checkAndExpireBeforePagination(keyword, fromDate, toDate, status, expired, deleted);
 		return orderService.filterAndPaginateOrders(keyword, null, fromDate, toDate, status, expired, deleted, sortOrder, pageNumber, pageSize);
 	}
-
+	
+	@GetMapping("/order/active")
+    PageResponse<OrderResponse> filterAndPaginateActiveOrders(
+        @RequestParam(required = false) String keyword,
+        @RequestParam(defaultValue = "ASC") SortOrder sortOrder,
+        @RequestParam(defaultValue = "0") Integer pageNumber,
+        @RequestParam(defaultValue = "50") Integer pageSize
+    ) {
+        return orderService.filterAndPaginateActiveOrders(keyword, sortOrder, pageNumber, pageSize);
+    }
 
     /* cart */
 

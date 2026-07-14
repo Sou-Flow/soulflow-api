@@ -17,7 +17,8 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
         SELECT c
         FROM Category c
         WHERE
-            (:deleted IS NULL OR c.deleted = :deleted) 
+            (LOWER(c.nameEng) != 'custom' AND LOWER(c.nameVn) != 'custom')
+            AND (:deleted IS NULL OR c.deleted = :deleted) 
             AND (
                 :keyword IS NULL
                 OR LOWER(c.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -35,4 +36,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     @Transactional
     @Query("UPDATE Category c SET c.deleted = true WHERE c.pk = :pk")
     void softDelete(@Param("pk") Long pk);
+
+    @Query("SELECT c FROM Category c WHERE (LOWER(c.nameEng) != 'custom' AND LOWER(c.nameVn) != 'custom') AND (c.deleted = false OR c.deleted IS NULL)")
+    java.util.List<Category> findAllActive();
 }
