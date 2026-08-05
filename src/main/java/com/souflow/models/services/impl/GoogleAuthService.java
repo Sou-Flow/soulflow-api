@@ -2,6 +2,7 @@ package com.souflow.models.services.impl;
 
 import java.util.Collections;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
@@ -11,14 +12,16 @@ import com.google.api.client.json.gson.GsonFactory;
 
 @Service 
 public class GoogleAuthService {
-    private static final String CLIENT_ID = "731452883233-bq07lic61901bk473t4ls6kkeimdtade.apps.googleusercontent.com";
+    
+    @Value("${google.client.id}")
+    private String clientId;
 
     public GoogleIdToken.Payload verify(String idTokenString) throws Exception {
         GsonFactory gsonFactory = GsonFactory.getDefaultInstance();
 
         GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                 GoogleNetHttpTransport.newTrustedTransport(), gsonFactory)
-                .setAudience(Collections.singletonList(CLIENT_ID))
+                .setAudience(Collections.singletonList(clientId))
                 .build();
 
         GoogleIdToken idToken = verifier.verify(idTokenString);

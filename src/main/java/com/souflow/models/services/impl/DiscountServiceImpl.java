@@ -89,4 +89,34 @@ public class DiscountServiceImpl implements DiscountService {
             cache.clear();
         }
     }
+
+    @Override
+    public DiscountResponse applyDiscount(String code, java.math.BigDecimal orderAmount) {
+        if (code == null || code.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã khuyến mãi không hợp lệ");
+        }
+        
+        Discount discount = discountRepo.findByCode(code.trim());
+        if (discount == null) {
+            throw new IllegalArgumentException("Mã khuyến mãi không tồn tại");
+        }
+        if (Boolean.TRUE.equals(discount.getDeleted())) {
+            throw new IllegalArgumentException("Mã khuyến mãi đã bị xóa");
+        }
+        if (Boolean.TRUE.equals(discount.getExpired()) || 
+           (discount.getExpiredDate() != null && discount.getExpiredDate().isBefore(LocalDateTime.now()))) {
+            throw new IllegalArgumentException("Mã khuyến mãi đã hết hạn");
+        }
+        if (discount.getMinOrderAmount() != null && orderAmount.compareTo(discount.getMinOrderAmount()) < 0) {
+            throw new IllegalArgumentException("Đơn hàng chưa đạt giá trị tối thiểu " + discount.getMinOrderAmount());
+        }
+        if (discount.getUsageLimit() != null && discount.getUsageLimit() > 0) {
+            int current = discount.getCurrentUsage() != null ? discount.getCurrentUsage() : 0;
+            if (current >= discount.getUsageLimit()) {
+                throw new IllegalArgumentException("Mã khuyến mãi đã hết lượt sử dụng");
+            }
+        }
+        
+        return discountMapper.toResponse(discount);
+    }
 }

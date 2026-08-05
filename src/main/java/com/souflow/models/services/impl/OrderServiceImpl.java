@@ -26,6 +26,8 @@ import com.souflow.models.requests.OrderRequest;
 import com.souflow.models.responses.OrderResponse;
 import com.souflow.models.responses.PageResponse;
 import com.souflow.models.services.OrderService;
+import com.souflow.models.repositories.DiscountRepository;
+import com.souflow.models.entities.Discount;
 
 import com.souflow.models.responses.NotificationMessage;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -44,6 +46,8 @@ public class OrderServiceImpl implements OrderService {
 
     private final ProductRepository productRepo;
 
+    private final DiscountRepository discountRepo;
+
     private final CacheManager cacheManager;
 
     private final SimpMessagingTemplate messagingTemplate;
@@ -56,6 +60,56 @@ public class OrderServiceImpl implements OrderService {
     })
     public OrderResponse save(OrderRequest request) {
         Order order = orderMapper.toEntity(request);
+
+        // Track and Validate discount usage
+        if (request.getPk() == null && request.getDiscountCode() != null && !request.getDiscountCode().trim().isEmpty()) {
+            Discount discount = discountRepo.findByCode(request.getDiscountCode().trim());
+            if (discount == null || Boolean.TRUE.equals(discount.getDeleted())) {
+                throw new IllegalArgumentException("Mã khuyến mãi không hợp lệ hoặc không tồn tại.");
+            }
+            if (Boolean.TRUE.equals(discount.getExpired()) || 
+               (discount.getExpiredDate() != null && discount.getExpiredDate().isBefore(LocalDateTime.now()))) {
+                throw new IllegalArgumentException("Mã khuyến mãi đã hết hạn.");
+            }
+            if (discount.getUsageLimit() != null && discount.getUsageLimit() > 0) {
+                int current = discount.getCurrentUsage() != null ? discount.getCurrentUsage() : 0;
+                if (current >= discount.getUsageLimit()) {
+                    throw new IllegalArgumentException("Mã khuyến mãi đã hết lượt sử dụng.");
+                }
+            }
+            
+            // Calculate subtotal to check minOrderAmount
+            java.math.BigDecimal subtotal = java.math.BigDecimal.ZERO;
+            if (order.getOrderDetails() != null) {
+                for (com.souflow.models.entities.OrderDetail od : order.getOrderDetails()) {
+                    subtotal = subtotal.add(od.getSubtotal());
+                }
+            }
+            if (discount.getMinOrderAmount() != null && subtotal.compareTo(discount.getMinOrderAmount()) < 0) {
+                throw new IllegalArgumentException("Đơn hàng chưa đạt giá trị tối thiểu " + discount.getMinOrderAmount() + " để dùng mã này.");
+            }
+            
+            // Override with trusted discount amount calculated on the backend
+            java.math.BigDecimal expectedDiscountAmount = subtotal.multiply(discount.getPercentage()).divide(java.math.BigDecimal.valueOf(100));
+            order.setDiscountAmount(expectedDiscountAmount);
+            order.calTotal(); // Recalculate safe total
+            
+            discount.setCurrentUsage((discount.getCurrentUsage() != null ? discount.getCurrentUsage() : 0) + 1);
+            if (discount.getUsageLimit() != null && discount.getUsageLimit() > 0 && discount.getCurrentUsage() >= discount.getUsageLimit()) {
+                discount.setExpired(true);
+            }
+            discountRepo.save(discount);
+            
+            // Evict discount caches so Admin UI updates immediately
+            org.springframework.cache.Cache dpCache = cacheManager.getCache("discountPages");
+            if (dpCache != null) dpCache.clear();
+            org.springframework.cache.Cache dlCache = cacheManager.getCache("discountList");
+            if (dlCache != null) dlCache.evict(String.valueOf(discount.getPk()));
+        } else if (request.getPk() == null) {
+            order.setDiscountCode(null);
+            order.setDiscountAmount(java.math.BigDecimal.ZERO);
+            order.calTotal();
+        }
         
         if (request.getPk() == null && order.getOrderDetails() != null) {
             order.getOrderDetails().forEach(detail -> {

@@ -96,6 +96,8 @@ CREATE TABLE orders (
     status VARCHAR(50) DEFAULT 'PENDING',
     shipping_fee DECIMAL(18,2) DEFAULT 0,
     payment_method VARCHAR(50) DEFAULT 'COD',
+    discount_code VARCHAR(255),
+    discount_amount FLOAT DEFAULT 0,
     del_if BIT NOT NULL DEFAULT 0,
 
     account_pk BIGINT NOT NULL,
@@ -175,7 +177,11 @@ GO
 CREATE TABLE discounts (
     pk BIGINT IDENTITY(1,1) PRIMARY KEY,
     id VARCHAR(50) UNIQUE NOT NULL,
+    code VARCHAR(255) UNIQUE,
     percentage FLOAT,
+    min_order_amount FLOAT,
+    usage_limit INT,
+    current_usage INT DEFAULT 0,
     description_vn NVARCHAR(255),
     description_eng VARCHAR(255),
     created_date DATETIME2 NOT NULL,

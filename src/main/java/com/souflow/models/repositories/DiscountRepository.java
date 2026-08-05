@@ -68,4 +68,6 @@ public interface DiscountRepository extends JpaRepository<Discount, Long> {
     @Transactional
     @Query("UPDATE Discount d SET d.deleted = true WHERE d.pk = :pk")
     int softDelete(@Param("pk") Long pk);
+
+    Discount findByCode(String code);
 }
