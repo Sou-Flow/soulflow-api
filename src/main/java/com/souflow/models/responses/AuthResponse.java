@@ -20,4 +20,6 @@ public class AuthResponse {
 	private String url;
 
 	private String roleCode;
+
+	private Boolean isNewUser;
 }

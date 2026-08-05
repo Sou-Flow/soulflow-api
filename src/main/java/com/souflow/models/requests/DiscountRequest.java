@@ -11,7 +11,15 @@ public class DiscountRequest {
 
     private Long pk;
 	
+	private String code;
+	
 	private	BigDecimal percentage;
+
+	private BigDecimal minOrderAmount;
+
+	private Integer usageLimit;
+
+	private Integer currentUsage;
 	
 	private String descriptionVn;
 	

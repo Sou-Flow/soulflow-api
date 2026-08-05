@@ -12,6 +12,12 @@ public class DiscountResponse {
 	private	String code;
 	
 	private	String percentage;
+
+	private String minOrderAmount;
+
+	private String usageLimit;
+
+	private String currentUsage;
 	
 	private String description;
 	

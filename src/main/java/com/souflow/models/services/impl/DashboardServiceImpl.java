@@ -38,14 +38,14 @@ public class DashboardServiceImpl implements DashboardService {
     private final ProductRepository productRepository;
 
     @Override
-    public DashboardResponse getDashboardData(String filter, LocalDate startDate, LocalDate endDate) {
+    public DashboardResponse getDashboardData(String filter, LocalDate startDate, LocalDate endDate, String chartType) {
         LocalDateTime now = LocalDateTime.now();
         
         LocalDateTime currentStart;
         LocalDateTime currentEnd;
         LocalDateTime prevStart;
         LocalDateTime prevEnd;
-
+        
         if ("custom".equalsIgnoreCase(filter) && startDate != null && endDate != null) {
             currentStart = startDate.atStartOfDay();
             currentEnd = endDate.plusDays(1).atStartOfDay();
@@ -66,6 +66,15 @@ public class DashboardServiceImpl implements DashboardService {
             currentEnd = currentStart.plusWeeks(1);
             
             prevStart = currentStart.minusWeeks(1);
+            prevEnd = currentStart;
+        } else if ("quarter".equalsIgnoreCase(filter)) {
+            // Adjust to current quarter
+            int currentMonth = now.getMonthValue();
+            int quarterStartMonth = ((currentMonth - 1) / 3) * 3 + 1;
+            currentStart = LocalDateTime.of(now.getYear(), quarterStartMonth, 1, 0, 0);
+            currentEnd = currentStart.plusMonths(3);
+            
+            prevStart = currentStart.minusMonths(3);
             prevEnd = currentStart;
         } else if ("year".equalsIgnoreCase(filter)) {
             // Adjust to current year
@@ -130,23 +139,177 @@ public class DashboardServiceImpl implements DashboardService {
                 .newProductsCount(newProductsCount)
                 .build();
 
-        // 2. Revenue By Month (Current Year)
-        int currentYear = now.getYear();
-        List<Object[]> monthlyDataRaw = orderRepository.getMonthlyRevenueForYear(currentYear, status);
-        Map<Integer, BigDecimal> monthDataMap = monthlyDataRaw.stream()
-                .collect(Collectors.toMap(
-                        row -> ((Number) row[0]).intValue(),
-                        row -> row[1] != null ? new BigDecimal(row[1].toString()) : BigDecimal.ZERO
-                ));
-                
+        // 2. Revenue Chart Data
         List<MonthlyRevenueDTO> revenueByMonth = new ArrayList<>();
-        for (int i = 1; i <= 12; i++) {
-            BigDecimal rev = monthDataMap.getOrDefault(i, BigDecimal.ZERO);
-            revenueByMonth.add(new MonthlyRevenueDTO("T" + i, rev));
+        
+        LocalDateTime chartStart = currentStart;
+        LocalDateTime chartEnd = currentEnd;
+        String effectiveChartType = chartType;
+
+        if (effectiveChartType == null || effectiveChartType.isEmpty() || effectiveChartType.equalsIgnoreCase("auto")) {
+            if ("today".equalsIgnoreCase(filter)) {
+                effectiveChartType = "hour";
+            } else if ("week".equalsIgnoreCase(filter)) {
+                effectiveChartType = "week";
+                chartStart = YearMonth.now().atDay(1).atStartOfDay();
+                chartEnd = YearMonth.now().plusMonths(1).atDay(1).atStartOfDay();
+            } else if ("month".equalsIgnoreCase(filter)) {
+                effectiveChartType = "month";
+                chartStart = LocalDateTime.of(now.getYear(), 1, 1, 0, 0);
+                chartEnd = chartStart.plusYears(1);
+            } else if ("quarter".equalsIgnoreCase(filter)) {
+                effectiveChartType = "quarter";
+                chartStart = LocalDateTime.of(now.getYear(), 1, 1, 0, 0);
+                chartEnd = chartStart.plusYears(1);
+            } else if ("year".equalsIgnoreCase(filter)) {
+                effectiveChartType = "year";
+                chartStart = LocalDateTime.of(now.getYear() - 4, 1, 1, 0, 0);
+                chartEnd = LocalDateTime.of(now.getYear() + 1, 1, 1, 0, 0);
+            } else if ("all".equalsIgnoreCase(filter)) {
+                effectiveChartType = "year";
+                chartStart = LocalDateTime.of(2000, 1, 1, 0, 0);
+                chartEnd = LocalDateTime.now().plusYears(1);
+            } else if ("custom".equalsIgnoreCase(filter)) {
+                long days = java.time.temporal.ChronoUnit.DAYS.between(chartStart, chartEnd);
+                if (days <= 1) effectiveChartType = "hour";
+                else if (days <= 31) effectiveChartType = "day";
+                else if (days <= 365) effectiveChartType = "month";
+                else effectiveChartType = "year";
+            }
+        }
+        
+        if ("hour".equalsIgnoreCase(effectiveChartType)) {
+            List<Object[]> chartDataRaw = orderRepository.getHourlyRevenue(chartStart, chartEnd, status);
+            Map<Integer, BigDecimal> hourDataMap = chartDataRaw.stream()
+                    .collect(Collectors.toMap(
+                            row -> row[0] != null ? ((Number) row[0]).intValue() : 0,
+                            row -> row[1] != null ? new BigDecimal(row[1].toString()) : BigDecimal.ZERO,
+                            (v1, v2) -> v1.add(v2)
+                    ));
+            for (int i = 0; i < 24; i++) {
+                BigDecimal rev = hourDataMap.getOrDefault(i, BigDecimal.ZERO);
+                revenueByMonth.add(new MonthlyRevenueDTO(String.format("%02d:00", i), rev));
+            }
+        } else if ("week".equalsIgnoreCase(effectiveChartType)) {
+            List<Object[]> chartDataRaw = orderRepository.getDailyRevenue(chartStart, chartEnd, status);
+            Map<LocalDate, BigDecimal> dailyMap = new java.util.HashMap<>();
+            for (Object[] row : chartDataRaw) {
+                if (row[0] == null || row[1] == null || row[2] == null) continue;
+                int y = ((Number) row[0]).intValue();
+                int m = ((Number) row[1]).intValue();
+                int d = ((Number) row[2]).intValue();
+                BigDecimal rev = row[3] != null ? new BigDecimal(row[3].toString()) : BigDecimal.ZERO;
+                dailyMap.put(LocalDate.of(y, m, d), rev);
+            }
+            
+            LocalDate start = chartStart.toLocalDate();
+            LocalDate end = chartEnd.toLocalDate().minusDays(1);
+            if (end.isBefore(start)) end = start;
+
+            LocalDate current = start;
+            int weekNumber = 1;
+            java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM");
+            while (!current.isAfter(end)) {
+                LocalDate weekEnd = current.plusDays(6);
+                if (weekEnd.isAfter(end)) {
+                    weekEnd = end;
+                }
+                
+                BigDecimal weekRev = BigDecimal.ZERO;
+                for (LocalDate date = current; !date.isAfter(weekEnd); date = date.plusDays(1)) {
+                    weekRev = weekRev.add(dailyMap.getOrDefault(date, BigDecimal.ZERO));
+                }
+                
+                String label = "Tuần " + weekNumber + " (" + current.format(fmt) + " - " + weekEnd.format(fmt) + ")";
+                revenueByMonth.add(new MonthlyRevenueDTO(label, weekRev));
+                
+                current = weekEnd.plusDays(1);
+                weekNumber++;
+            }
+        } else if ("day".equalsIgnoreCase(effectiveChartType)) {
+            List<Object[]> chartDataRaw = orderRepository.getDailyRevenue(chartStart, chartEnd, status);
+            for (Object[] row : chartDataRaw) {
+                if (row[1] == null || row[2] == null) continue;
+                int m = ((Number) row[1]).intValue();
+                int d = ((Number) row[2]).intValue();
+                BigDecimal rev = row[3] != null ? new BigDecimal(row[3].toString()) : BigDecimal.ZERO;
+                revenueByMonth.add(new MonthlyRevenueDTO(String.format("%02d/%02d", d, m), rev));
+            }
+        } else if ("quarter".equalsIgnoreCase(effectiveChartType)) {
+            List<Object[]> chartDataRaw = orderRepository.getMonthlyRevenue(chartStart, chartEnd, status);
+            Map<String, BigDecimal> quarterMap = new java.util.LinkedHashMap<>();
+            for (Object[] row : chartDataRaw) {
+                if (row[0] == null || row[1] == null) continue;
+                int y = ((Number) row[0]).intValue();
+                int m = ((Number) row[1]).intValue();
+                BigDecimal rev = row[2] != null ? new BigDecimal(row[2].toString()) : BigDecimal.ZERO;
+                int q = (m - 1) / 3 + 1;
+                String label = "Quý " + q + "/" + y;
+                quarterMap.put(label, quarterMap.getOrDefault(label, BigDecimal.ZERO).add(rev));
+            }
+            if ("quarter".equalsIgnoreCase(filter)) {
+                int y = chartStart.getYear();
+                for (int i = 1; i <= 4; i++) {
+                    String label = "Quý " + i + "/" + y;
+                    revenueByMonth.add(new MonthlyRevenueDTO(label, quarterMap.getOrDefault(label, BigDecimal.ZERO)));
+                }
+            } else {
+                for (Map.Entry<String, BigDecimal> entry : quarterMap.entrySet()) {
+                    revenueByMonth.add(new MonthlyRevenueDTO(entry.getKey(), entry.getValue()));
+                }
+            }
+        } else if ("year".equalsIgnoreCase(effectiveChartType)) {
+            List<Object[]> chartDataRaw = orderRepository.getMonthlyRevenue(chartStart, chartEnd, status);
+            Map<Integer, BigDecimal> yearMap = new java.util.LinkedHashMap<>();
+            for (Object[] row : chartDataRaw) {
+                if (row[0] == null) continue;
+                int y = ((Number) row[0]).intValue();
+                BigDecimal rev = row[2] != null ? new BigDecimal(row[2].toString()) : BigDecimal.ZERO;
+                yearMap.put(y, yearMap.getOrDefault(y, BigDecimal.ZERO).add(rev));
+            }
+            if ("year".equalsIgnoreCase(filter)) {
+                int startY = chartStart.getYear();
+                int endY = chartEnd.getYear() - 1;
+                for (int i = startY; i <= endY; i++) {
+                    revenueByMonth.add(new MonthlyRevenueDTO(String.valueOf(i), yearMap.getOrDefault(i, BigDecimal.ZERO)));
+                }
+            } else if ("all".equalsIgnoreCase(filter)) {
+                int startY = yearMap.keySet().stream().min(Integer::compareTo).orElse(now.getYear());
+                int endY = now.getYear();
+                for (int i = startY; i <= endY; i++) {
+                    revenueByMonth.add(new MonthlyRevenueDTO(String.valueOf(i), yearMap.getOrDefault(i, BigDecimal.ZERO)));
+                }
+            } else {
+                for (Map.Entry<Integer, BigDecimal> entry : yearMap.entrySet()) {
+                    revenueByMonth.add(new MonthlyRevenueDTO(String.valueOf(entry.getKey()), entry.getValue()));
+                }
+            }
+        } else {
+            List<Object[]> chartDataRaw = orderRepository.getMonthlyRevenue(chartStart, chartEnd, status);
+            Map<String, BigDecimal> monthMap = new java.util.LinkedHashMap<>();
+            for (Object[] row : chartDataRaw) {
+                if (row[0] == null || row[1] == null) continue;
+                int y = ((Number) row[0]).intValue();
+                int m = ((Number) row[1]).intValue();
+                BigDecimal rev = row[2] != null ? new BigDecimal(row[2].toString()) : BigDecimal.ZERO;
+                String label = String.format("%02d/%d", m, y);
+                monthMap.put(label, monthMap.getOrDefault(label, BigDecimal.ZERO).add(rev));
+            }
+            if ("month".equalsIgnoreCase(filter)) {
+                int y = chartStart.getYear();
+                for (int i = 1; i <= 12; i++) {
+                    String label = String.format("%02d/%d", i, y);
+                    revenueByMonth.add(new MonthlyRevenueDTO(label, monthMap.getOrDefault(label, BigDecimal.ZERO)));
+                }
+            } else {
+                for (Map.Entry<String, BigDecimal> entry : monthMap.entrySet()) {
+                    revenueByMonth.add(new MonthlyRevenueDTO(entry.getKey(), entry.getValue()));
+                }
+            }
         }
 
         // 3. Revenue By Category
-        List<Object[]> catDataRaw = orderRepository.getRevenueByCategory(status);
+        List<Object[]> catDataRaw = orderRepository.getRevenueByCategory(status, currentStart, currentEnd);
         List<CategoryRevenueDTO> revenueByCategory = catDataRaw.stream().map(row -> {
             String name = (String) row[0];
             BigDecimal value = row[1] != null ? new BigDecimal(row[1].toString()) : BigDecimal.ZERO;
@@ -154,7 +317,7 @@ public class DashboardServiceImpl implements DashboardService {
         }).collect(Collectors.toList());
 
         // 4. Top Selling Products
-        List<Object[]> topDataRaw = orderRepository.getTopSellingProducts(status, PageRequest.of(0, 5));
+        List<Object[]> topDataRaw = orderRepository.getTopSellingProducts(status, currentStart, currentEnd, PageRequest.of(0, 5));
         List<TopSellingProductDTO> topSellingProducts = topDataRaw.stream().map(row -> {
             String id = (String) row[0];
             String name = (String) row[1];

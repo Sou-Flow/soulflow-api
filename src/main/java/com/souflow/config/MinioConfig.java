@@ -21,37 +21,42 @@ public class MinioConfig {
             .credentials(props.accessKey(), props.secretKey())
             .build();
  
-        // Auto-create the bucket on startup if it doesn't exist
-        boolean exists = client.bucketExists(
-            BucketExistsArgs.builder().bucket(props.bucket()).build()
-        );
-        if (!exists) {
-            client.makeBucket(
-                MakeBucketArgs.builder().bucket(props.bucket()).build()
+        try {
+            // Auto-create the bucket on startup if it doesn't exist
+            boolean exists = client.bucketExists(
+                BucketExistsArgs.builder().bucket(props.bucket()).build()
             );
-        }
-        
-        // Set some bucket to be public
-        String policy = """
-            {
-            "Version":"2012-10-17",
-            "Statement":[
-                {
-                "Effect":"Allow",
-                "Principal":"*",
-                "Action":["s3:GetObject"],
-                "Resource":["arn:aws:s3:::%s/*"]
-                }
-            ]
+            if (!exists) {
+                client.makeBucket(
+                    MakeBucketArgs.builder().bucket(props.bucket()).build()
+                );
             }
-        """.formatted(props.bucket());
+            
+            // Set some bucket to be public
+            String policy = """
+                {
+                "Version":"2012-10-17",
+                "Statement":[
+                    {
+                    "Effect":"Allow",
+                    "Principal":"*",
+                    "Action":["s3:GetObject"],
+                    "Resource":["arn:aws:s3:::%s/*"]
+                    }
+                ]
+                }
+            """.formatted(props.bucket());
 
-        client.setBucketPolicy(
-            SetBucketPolicyArgs.builder()
-                .bucket(props.bucket())
-                .config(policy)
-                .build()
-        );
+            client.setBucketPolicy(
+                SetBucketPolicyArgs.builder()
+                    .bucket(props.bucket())
+                    .config(policy)
+                    .build()
+            );
+        } catch (Exception e) {
+            System.err.println("WARNING: Could not connect to Minio server on startup. Minio might be offline.");
+            e.printStackTrace();
+        }
 
         return client;
     }

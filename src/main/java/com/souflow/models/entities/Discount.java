@@ -35,6 +35,15 @@ public class Discount {
 	private	String code;
 	
 	private	BigDecimal percentage;
+
+	@Column(name = "min_order_amount")
+	private BigDecimal minOrderAmount;
+	
+	@Column(name = "usage_limit")
+	private Integer usageLimit;
+	
+	@Column(name = "current_usage")
+	private Integer currentUsage;
 	
 	@Column(name = "description_vn")
 	private String descriptionVn;

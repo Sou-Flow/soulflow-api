@@ -356,6 +356,12 @@ public class AdminController {
 
 		OrderResponse orderResponse = orderService.save(request);
 
+        boolean isNew = request.getPk() == null;
+        if (isNew && "SEPAY".equalsIgnoreCase(request.getPaymentMethod())) {
+            orderService.updateStatus(Long.valueOf(orderResponse.getPk()), OrderStatus.WAITING_PAYMENT);
+            orderResponse = orderService.findByPk(Long.valueOf(orderResponse.getPk()));
+        }
+
         Integer effectedRows = orderService.markOrderAsPaidIfFullyPaid(Long.valueOf(orderResponse.getPk()));
 
         if (effectedRows != 0) {

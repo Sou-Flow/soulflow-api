@@ -26,7 +26,6 @@ public abstract class DiscountMapper {
     @Autowired
     protected DiscountRepository discountRepo;
 
-    @Mapping(target = "code",               ignore = true)
     @Mapping(target = "expired",            ignore = true)
     @Mapping(target = "createdDate",        ignore = true) 
     @Mapping(target = "deleted",          	ignore = true)
@@ -55,7 +54,7 @@ public abstract class DiscountMapper {
                 .orElseThrow(() -> new EntityNotFoundException("Discount not found with pk: " + pk));
             
             if (discount.getExpiredDate() != null) {
-            	if (discount.getExpiredDate().isAfter(now)) {
+            	if (discount.getExpiredDate().isBefore(now)) {
                     discount.setExpired(true);
                 } else {
                     discount.setExpired(false);
@@ -64,6 +63,10 @@ public abstract class DiscountMapper {
     			discount.setExpiredDate(oldDiscount.getExpiredDate());
     			discount.setExpired(oldDiscount.getExpired());
     		}
+    		
+            if (discount.getUsageLimit() != null && discount.getUsageLimit() > 0 && discount.getCurrentUsage() != null && discount.getCurrentUsage() >= discount.getUsageLimit()) {
+                discount.setExpired(true);
+            }
   
             discount.setCode(oldDiscount.getCode());
             discount.setCreatedDate(oldDiscount.getCreatedDate());
@@ -72,7 +75,7 @@ public abstract class DiscountMapper {
         }
         
         if (discount.getExpiredDate() != null) {
-        	if (discount.getExpiredDate().isAfter(now)) {
+        	if (discount.getExpiredDate().isBefore(now)) {
                 discount.setExpired(true);
             } else {
                 discount.setExpired(false);
@@ -82,7 +85,20 @@ public abstract class DiscountMapper {
 			discount.setExpired(false);
 		}
       
-        discount.setCode("D-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        if (request.getCode() == null || request.getCode().trim().isEmpty()) {
+            discount.setCode("D-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        } else {
+            discount.setCode(request.getCode());
+        }
+        
+        if (discount.getCurrentUsage() == null) {
+            discount.setCurrentUsage(0);
+        }
+        
+        if (discount.getUsageLimit() != null && discount.getUsageLimit() > 0 && discount.getCurrentUsage() >= discount.getUsageLimit()) {
+            discount.setExpired(true);
+        }
+        
         discount.setCreatedDate(now); 
         discount.setDeleted(false);
     }

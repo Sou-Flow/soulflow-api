@@ -151,23 +151,20 @@ public class AccountServiceImpl implements AccountService {
 
             Account account = accountRepo.findByEmail(email)
             		.orElse(null);
+			
 			if (account == null) {
-				AccountRequest request = new AccountRequest();
-				request.setFullname(name);
-				request.setUsername(email);
-				request.setEmail(email);
-				Role role = roleRepo.findByCode(RoleCode.USER)
-						.orElseThrow(() -> new EntityNotFoundException());
-				account = accountMapper.toEntity(request);
-				account.setRole(role);
-				account = accountRepo.save(account);
-				clearAccountCaches(account);
+				// Return special response for new user
+				return AuthResponse.builder()
+					.isNewUser(true)
+					.email(email)
+					.fullname(name)
+					.build();
 			}
 			
-            // Generate JWT
+            // Generate JWT for existing user
             String token = jwtUtil.generateToken(
                 account.getUsername(),
-                RoleCode.USER.name()
+                account.getRole().getCode().name()
             );
 
             return AuthResponse.builder()
@@ -177,6 +174,7 @@ public class AccountServiceImpl implements AccountService {
 				.email(account.getEmail())
 				.photo(account.getPhoto())
 				.roleCode(account.getRole().getCode().name())
+				.isNewUser(false)
 				.build();
 
         } catch (Exception e) {

@@ -96,6 +96,8 @@ CREATE TABLE orders (
     status VARCHAR(50) DEFAULT 'PENDING',
     shipping_fee DECIMAL(18,2) DEFAULT 0,
     payment_method VARCHAR(50) DEFAULT 'COD',
+    discount_code VARCHAR(255),
+    discount_amount FLOAT DEFAULT 0,
     del_if BIT NOT NULL DEFAULT 0,
 
     account_pk BIGINT NOT NULL,
@@ -175,7 +177,11 @@ GO
 CREATE TABLE discounts (
     pk BIGINT IDENTITY(1,1) PRIMARY KEY,
     id VARCHAR(50) UNIQUE NOT NULL,
+    code VARCHAR(255) UNIQUE,
     percentage FLOAT,
+    min_order_amount FLOAT,
+    usage_limit INT,
+    current_usage INT DEFAULT 0,
     description_vn NVARCHAR(255),
     description_eng VARCHAR(255),
     created_date DATETIME2 NOT NULL,
@@ -280,3 +286,95 @@ VALUES (
     'ADMIN'
 );
 
+
+CREATE PROCEDURE sp_GetRevenueReport
+    @StartDate DATETIME2,
+    @EndDate   DATETIME2,
+    @Type      VARCHAR(20)   -- 'MONTH', 'QUARTER', 'YEAR'
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @RealStart DATETIME2;
+    DECLARE @RealEnd   DATETIME2;
+
+    -- ===== Làm tròn khoảng ngày theo đơn vị được chọn =====
+    IF @Type = 'YEAR'
+    BEGIN
+        -- Lấy trọn năm bắt đầu -> trọn năm kết thúc
+        SET @RealStart = DATEFROMPARTS(YEAR(@StartDate), 1, 1);
+        SET @RealEnd   = DATEFROMPARTS(YEAR(@EndDate), 12, 31);
+    END
+    ELSE IF @Type = 'QUARTER'
+    BEGIN
+        -- Lấy trọn quý bắt đầu -> trọn quý kết thúc
+        DECLARE @StartQuarterMonth INT = (DATEPART(QUARTER, @StartDate) - 1) * 3 + 1;
+        DECLARE @EndQuarterMonth   INT = (DATEPART(QUARTER, @EndDate) - 1) * 3 + 1;
+
+        SET @RealStart = DATEFROMPARTS(YEAR(@StartDate), @StartQuarterMonth, 1);
+        SET @RealEnd   = EOMONTH(DATEFROMPARTS(YEAR(@EndDate), @EndQuarterMonth + 2, 1));
+    END
+    ELSE IF @Type = 'MONTH'
+    BEGIN
+        -- Lấy trọn tháng bắt đầu -> trọn tháng kết thúc
+        SET @RealStart = DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1);
+        SET @RealEnd   = EOMONTH(DATEFROMPARTS(YEAR(@EndDate), MONTH(@EndDate), 1));
+    END
+    ELSE
+    BEGIN
+        RAISERROR('Invalid @Type. Must be MONTH, QUARTER, or YEAR.', 16, 1);
+        RETURN;
+    END
+
+    -- ===== Group theo đơn vị đã chọn, dùng khoảng ngày đã làm tròn =====
+    IF @Type = 'MONTH'
+    BEGIN
+        SELECT 
+            YEAR(created_date)  AS year_value,
+            MONTH(created_date) AS month_value,
+            CAST(YEAR(created_date) AS VARCHAR(4)) + '-' 
+                + RIGHT('0' + CAST(MONTH(created_date) AS VARCHAR(2)), 2) AS label,
+            COUNT(*)     AS order_count,
+            SUM(total)   AS revenue
+        FROM orders
+        WHERE del_if = 0
+          AND status = 'DELIVERED'
+          AND created_date >= @RealStart
+          AND created_date < DATEADD(DAY, 1, @RealEnd)
+        GROUP BY YEAR(created_date), MONTH(created_date)
+        ORDER BY YEAR(created_date), MONTH(created_date);
+    END
+    ELSE IF @Type = 'QUARTER'
+    BEGIN
+        SELECT
+            YEAR(created_date) AS year_value,
+            DATEPART(QUARTER, created_date) AS quarter_value,
+            CAST(YEAR(created_date) AS VARCHAR(4)) + '-Q' 
+                + CAST(DATEPART(QUARTER, created_date) AS VARCHAR(1)) AS label,
+            COUNT(*)     AS order_count,
+            SUM(total)   AS revenue
+        FROM orders
+        WHERE del_if = 0
+          AND status = 'DELIVERED'
+          AND created_date >= @RealStart
+          AND created_date < DATEADD(DAY, 1, @RealEnd)
+        GROUP BY YEAR(created_date), DATEPART(QUARTER, created_date)
+        ORDER BY YEAR(created_date), DATEPART(QUARTER, created_date);
+    END
+    ELSE IF @Type = 'YEAR'
+    BEGIN
+        SELECT
+            YEAR(created_date) AS year_value,
+            CAST(YEAR(created_date) AS VARCHAR(4)) AS label,
+            COUNT(*)     AS order_count,
+            SUM(total)   AS revenue
+        FROM orders
+        WHERE del_if = 0
+          AND status = 'DELIVERED'
+          AND created_date >= @RealStart
+          AND created_date < DATEADD(DAY, 1, @RealEnd)
+        GROUP BY YEAR(created_date)
+        ORDER BY YEAR(created_date);
+    END
+END
+GO
