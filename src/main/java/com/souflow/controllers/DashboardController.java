@@ -24,7 +24,8 @@ public class DashboardController {
     public ResponseEntity<DashboardResponse> getDashboard(
             @org.springframework.web.bind.annotation.RequestParam(required = false, defaultValue = "month") String filter,
             @org.springframework.web.bind.annotation.RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @org.springframework.web.bind.annotation.RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(dashboardService.getDashboardData(filter, startDate, endDate));
+            @org.springframework.web.bind.annotation.RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String chartType) {
+        return ResponseEntity.ok(dashboardService.getDashboardData(filter, startDate, endDate, chartType));
     }
 }
