@@ -16,5 +16,7 @@ public class OrderRequest {
     private Long accountPk;
     private java.math.BigDecimal shippingFee;
     private String paymentMethod;
+    private String discountCode;
+    private java.math.BigDecimal discountAmount;
     private List<OrderDetailRequest> orderDetailRequests;  
 }

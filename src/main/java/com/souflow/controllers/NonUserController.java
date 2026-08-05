@@ -27,6 +27,9 @@ import com.souflow.models.requests.VerifyOtpRequest;
 import com.souflow.models.services.AccountService;
 import com.souflow.models.services.ProductService;
 import com.souflow.models.services.impl.AccountServiceImpl.GoogleTokenDTO;
+import com.souflow.models.services.impl.DiscordNotificationService;
+import com.souflow.models.services.DiscountService;
+import com.souflow.models.responses.DiscountResponse;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,6 +40,8 @@ public class NonUserController  {
     private final AdminController adminController;
     private final AccountService accountService;
     private final ProductService productService;
+    private final DiscordNotificationService discordService;
+    private final DiscountService discountService;
 
     @PostMapping("/login")
     AuthResponse login(@RequestBody AuthRequest request) {
@@ -139,5 +144,20 @@ public class NonUserController  {
         @RequestBody byte[] rawPayloadBytes) {
         adminController.processSepayWebhook(sepaySignature, sepayTimestamp, rawPayloadBytes);
         return org.springframework.http.ResponseEntity.ok(java.util.Map.of("success", true));
+    }
+
+    @PostMapping("/discount/apply")
+    public DiscountResponse applyDiscount(@RequestParam String code, @RequestParam BigDecimal orderAmount) {
+        return discountService.applyDiscount(code, orderAmount);
+    }
+
+    @PostMapping("/notify/contact")
+    public void notifyContact(@RequestBody java.util.Map<String, Object> payload) {
+        discordService.sendContactNotification(payload);
+    }
+
+    @PostMapping("/notify/custom-order")
+    public void notifyCustomOrder(@RequestBody java.util.Map<String, Object> payload) {
+        discordService.sendCustomOrderNotification(payload);
     }
 }

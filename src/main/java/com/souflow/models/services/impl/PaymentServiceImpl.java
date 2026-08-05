@@ -111,8 +111,15 @@ public class PaymentServiceImpl implements PaymentService {
             
             if (order != null && order.getStatus() == OrderStatus.PENDING) {
                 // Kiểm tra xem số tiền chuyển có đủ không (tùy chọn, hiện tại đang paid vô điều kiện)
+                Payment payment = new Payment();
+                payment.setOrder(order);
+                payment.setAmount(request.getTransferAmount());
+                payment.setPaymentDate(java.time.LocalDateTime.now());
+                payment.setPaid(true);
+                paymentRepo.save(payment);
+                
                 orderService.markOrderAsPaidUnconditionally(orderId);
-                log.info("SePay webhook SUCCESS: Order {} marked as PAID", orderId);
+                log.info("SePay webhook SUCCESS: Order {} marked as PAID and payment saved", orderId);
             } else {
                 log.info("SePay webhook ignored: Order {} not found or not PENDING", orderId);
             }

@@ -130,12 +130,18 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT COUNT(o) FROM Order o WHERE o.createdDate >= :start AND o.createdDate < :end AND (o.deleted = false OR o.deleted IS NULL)")
     Long countOrdersByMonthRange(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    @Query("SELECT MONTH(o.createdDate), SUM(o.total) FROM Order o WHERE YEAR(o.createdDate) = :year AND o.status = :status AND (o.deleted = false OR o.deleted IS NULL) GROUP BY MONTH(o.createdDate)")
-    java.util.List<Object[]> getMonthlyRevenueForYear(@Param("year") int year, @Param("status") OrderStatus status);
+    @Query("SELECT YEAR(o.createdDate), MONTH(o.createdDate), SUM(o.total) FROM Order o WHERE o.createdDate >= :startDate AND o.createdDate < :endDate AND o.status = :status AND (o.deleted = false OR o.deleted IS NULL) GROUP BY YEAR(o.createdDate), MONTH(o.createdDate) ORDER BY YEAR(o.createdDate) ASC, MONTH(o.createdDate) ASC")
+    java.util.List<Object[]> getMonthlyRevenue(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, @Param("status") OrderStatus status);
 
-    @Query("SELECT c.nameVn, SUM(od.subtotal) FROM OrderDetail od JOIN od.order o JOIN od.product p JOIN p.category c WHERE o.status = :status AND (o.deleted = false OR o.deleted IS NULL) GROUP BY c.nameVn")
-    java.util.List<Object[]> getRevenueByCategory(@Param("status") OrderStatus status);
+    @Query("SELECT YEAR(o.createdDate), MONTH(o.createdDate), DAY(o.createdDate), SUM(o.total) FROM Order o WHERE o.createdDate >= :startDate AND o.createdDate < :endDate AND o.status = :status AND (o.deleted = false OR o.deleted IS NULL) GROUP BY YEAR(o.createdDate), MONTH(o.createdDate), DAY(o.createdDate) ORDER BY YEAR(o.createdDate) ASC, MONTH(o.createdDate) ASC, DAY(o.createdDate) ASC")
+    java.util.List<Object[]> getDailyRevenue(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, @Param("status") OrderStatus status);
 
-    @Query("SELECT p.code, p.nameVn, SUM(od.quantity), SUM(od.subtotal) FROM OrderDetail od JOIN od.order o JOIN od.product p WHERE o.status = :status AND (o.deleted = false OR o.deleted IS NULL) GROUP BY p.code, p.nameVn ORDER BY SUM(od.quantity) DESC")
-    java.util.List<Object[]> getTopSellingProducts(@Param("status") OrderStatus status, Pageable pageable);
+    @Query("SELECT HOUR(o.createdDate), SUM(o.total) FROM Order o WHERE o.createdDate >= :startDate AND o.createdDate < :endDate AND o.status = :status AND (o.deleted = false OR o.deleted IS NULL) GROUP BY HOUR(o.createdDate) ORDER BY HOUR(o.createdDate) ASC")
+    java.util.List<Object[]> getHourlyRevenue(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, @Param("status") OrderStatus status);
+
+    @Query("SELECT c.nameVn, SUM(od.subtotal) FROM OrderDetail od JOIN od.order o JOIN od.product p JOIN p.category c WHERE o.status = :status AND o.createdDate >= :startDate AND o.createdDate < :endDate AND (o.deleted = false OR o.deleted IS NULL) GROUP BY c.nameVn ORDER BY SUM(od.subtotal) DESC")
+    java.util.List<Object[]> getRevenueByCategory(@Param("status") OrderStatus status, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT p.code, p.nameVn, SUM(od.quantity), SUM(od.subtotal) FROM OrderDetail od JOIN od.order o JOIN od.product p WHERE o.status = :status AND o.createdDate >= :startDate AND o.createdDate < :endDate AND (o.deleted = false OR o.deleted IS NULL) GROUP BY p.code, p.nameVn ORDER BY SUM(od.quantity) DESC")
+    java.util.List<Object[]> getTopSellingProducts(@Param("status") OrderStatus status, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, Pageable pageable);
 }
