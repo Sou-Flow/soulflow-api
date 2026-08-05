@@ -72,6 +72,12 @@ public class Order {
 	@Column(name = "payment_method")
 	private String paymentMethod;
 	
+	@Column(name = "discount_code")
+	private String discountCode;
+	
+	@Column(name = "discount_amount")
+	private BigDecimal discountAmount;
+
 	@Column(name = "del_if")
 	private Boolean deleted;
 
@@ -91,6 +97,13 @@ public class Order {
 		}
 		if (shippingFee != null) {
 			temp = temp.add(shippingFee);
+		}
+		if (discountAmount != null) {
+			temp = temp.subtract(discountAmount);
+		}
+		// Ensure total doesn't go below 0
+		if (temp.compareTo(BigDecimal.ZERO) < 0) {
+			temp = BigDecimal.ZERO;
 		}
 		total = temp;
 	}

@@ -28,4 +28,5 @@ public interface DiscountService {
         Boolean expired,
         Boolean deleted
     );
+    DiscountResponse applyDiscount(String code, java.math.BigDecimal orderAmount);
 }

@@ -24,6 +24,10 @@ public class OrderResponse {
     private String shippingFee;
     
     private String paymentMethod;
+    
+    private String discountCode;
+    
+    private String discountAmount;
 
     private String createdDate;
 
