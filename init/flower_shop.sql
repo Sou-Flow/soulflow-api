@@ -278,7 +278,7 @@ INSERT INTO accounts (
 )
 VALUES (
     'admin',
-    '$2a$10$OQV2lk31K/eTmbHEP0ljiue92qx/2WG.wWjwfDeyazOtNCapbOYPq',
+    '$2a$10$w0fTJ2b.0QqewZWphyL23eU0YGhVTOXFccwW1LbM0LM9PsR.dpBh2',
     N'Administrator',
     'admin@example.com',
     GETDATE(),
