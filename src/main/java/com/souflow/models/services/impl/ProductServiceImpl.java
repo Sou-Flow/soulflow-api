@@ -118,7 +118,8 @@ public class ProductServiceImpl implements ProductService {
 		};
 		
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
-		String searchKeyword = (keyword != null && !keyword.trim().isEmpty()) ? "%" + keyword.trim() + "%" : null;
+		String sanitized = com.souflow.utils.StringUtil.sanitizeSqlLikeKeyword(keyword);
+		String searchKeyword = sanitized != null ? "%" + sanitized + "%" : null;
 		Page<Product> page = productRepo.filterProducts(minPrice, maxPrice, categoryPk, searchKeyword, customised, available, deleted, fromDate, toDate, pageable);
 		List<ProductResponse> responses = productMapper.toBasicResponseList(page.getContent());
         return new PageResponse<>(page, responses);

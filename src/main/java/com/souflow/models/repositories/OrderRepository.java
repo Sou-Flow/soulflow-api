@@ -20,10 +20,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 	
 	Optional<Order> findByCode(String code);
 	
+	java.util.List<Order> findByStatusAndCreatedDateBefore(OrderStatus status, LocalDateTime time);
+	
     @Query("""
         SELECT o
         FROM Order o
-        LEFT JOIN o.account a
+        LEFT JOIN FETCH o.account a
         WHERE
             (:accountPk IS NULL OR a.pk = :accountPk)
             AND (:deleted IS NULL OR o.deleted = :deleted)
@@ -52,7 +54,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("""
         SELECT o
         FROM Order o
-        LEFT JOIN o.account a
+        LEFT JOIN FETCH o.account a
         WHERE
             (o.deleted = false OR o.deleted IS NULL)
             AND o.status NOT IN ('CANCELLED', 'DELIVERED')
