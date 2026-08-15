@@ -24,7 +24,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
                     "/reset-password",
                     "/notify/contact",
                     "/notify/custom-order",
-                    "/admin/login"
+                    "/admin/login",
+                    "/user/order",
+                    "/user/order/**",
+                    "/discount/apply",
+                    "/user/cart",
+                    "/user/cart/**"
                 );
     }
 }
