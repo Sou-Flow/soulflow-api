@@ -362,7 +362,6 @@ public class OrderServiceImpl implements OrderService {
                 case WAITING_PAYMENT -> "Chờ thanh toán";
                 case PAID -> "Đã thanh toán";
                 case PROCESSING -> "Đang xử lý";
-                case SHIPPED -> "Đang giao hàng";
                 case DELIVERED -> "Đã giao hàng";
                 case CANCELLED -> "Đã hủy";
             };
