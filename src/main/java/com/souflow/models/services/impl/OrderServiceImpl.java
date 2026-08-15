@@ -189,7 +189,8 @@ public class OrderServiceImpl implements OrderService {
 	            ? Sort.by("pk").ascending()
 	            : Sort.by("pk").descending();
     	Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
-    	Page<Order> page = orderRepo.filterOrders(keyword, accountPk, fromDate, toDate, status, expired, deleted, pageable);
+    	String sanitizedKeyword = com.souflow.utils.StringUtil.sanitizeSqlLikeKeyword(keyword);
+    	Page<Order> page = orderRepo.filterOrders(sanitizedKeyword, accountPk, fromDate, toDate, status, expired, deleted, pageable);
     	List<OrderResponse> responses = orderMapper.toResponseList(page.getContent());
         return new PageResponse<>(page, responses);
     }

@@ -285,7 +285,7 @@ VALUES (
     DATEADD(YEAR, 10, GETDATE()),
     'ADMIN'
 );
-
+GO
 
 CREATE PROCEDURE sp_GetRevenueReport
     @StartDate DATETIME2,

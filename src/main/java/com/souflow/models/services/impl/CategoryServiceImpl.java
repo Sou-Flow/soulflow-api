@@ -80,7 +80,8 @@ public class CategoryServiceImpl implements CategoryService {
 	            ? Sort.by("id").ascending()
 	            : Sort.by("id").descending();
     	Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
-    	Page<Category> page = categoryRepo.filterCategories(keyword, deleted, pageable);
+    	String sanitizedKeyword = com.souflow.utils.StringUtil.sanitizeSqlLikeKeyword(keyword);
+    	Page<Category> page = categoryRepo.filterCategories(sanitizedKeyword, deleted, pageable);
     	List<CategoryResponse> responses = categoryMapper.toBasicResponseList(page.getContent());
         return new PageResponse<>(page, responses);
     }

@@ -76,7 +76,8 @@ public class DiscountServiceImpl implements DiscountService {
                 ? Sort.by("id").ascending()
                 : Sort.by("id").descending();
         Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
-        Page<Discount> page = discountRepo.filterDiscounts(keyword, fromDate, toDate, expired, deleted, pageable);
+        String sanitizedKeyword = com.souflow.utils.StringUtil.sanitizeSqlLikeKeyword(keyword);
+        Page<Discount> page = discountRepo.filterDiscounts(sanitizedKeyword, fromDate, toDate, expired, deleted, pageable);
         List<DiscountResponse> responses = discountMapper.toResponseList(page.getContent());
         return new PageResponse<>(page, responses);
     }

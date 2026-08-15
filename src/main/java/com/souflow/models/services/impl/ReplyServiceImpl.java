@@ -91,7 +91,8 @@ public class ReplyServiceImpl implements ReplyService {
 	            ? Sort.by("id").ascending()
 	            : Sort.by("id").descending();
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
-	    Page<Reply> page = replyRepo.filterReplies(keyword, fromDate, toDate, deleted, pageable);
+	    String sanitizedKeyword = com.souflow.utils.StringUtil.sanitizeSqlLikeKeyword(keyword);
+	    Page<Reply> page = replyRepo.filterReplies(sanitizedKeyword, fromDate, toDate, deleted, pageable);
 	    List<ReplyResponse> responses = replyMapper.toResponseList(page.getContent());
 	    return new PageResponse<>(page, responses);
 	}

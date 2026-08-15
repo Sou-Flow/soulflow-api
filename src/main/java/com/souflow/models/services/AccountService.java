@@ -21,6 +21,7 @@ public interface AccountService {
 	AuthResponse register(AccountRequest request);
 	AuthResponse login(AuthRequest authRequest);
 	AuthResponse loginWithGoogle(GoogleTokenDTO googleToken);
+	AuthResponse refreshToken(com.souflow.models.requests.RefreshTokenRequest request);
 	AccountResponse save(AccountRequest request);
 	void softDeleteByPk(Long accountPk);
 	AccountResponse findByPk(Long accountPk);

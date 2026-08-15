@@ -73,7 +73,8 @@ public class CommentServiceImpl implements CommentService {
 	            ? Sort.by("id").ascending()
 	            : Sort.by("id").descending();
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
-		Page<Comment> page = commentRepo.filterComments(keyword, fromDate, toDate, deleted, pageable);
+		String sanitizedKeyword = com.souflow.utils.StringUtil.sanitizeSqlLikeKeyword(keyword);
+		Page<Comment> page = commentRepo.filterComments(sanitizedKeyword, fromDate, toDate, deleted, pageable);
 		List<CommentResponse> responses = commentMapper.toDetailedResponseList(page.getContent());
 		return new PageResponse<>(page, responses);
 	}

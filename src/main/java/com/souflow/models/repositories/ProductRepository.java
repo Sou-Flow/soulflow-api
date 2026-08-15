@@ -26,6 +26,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 	@Query("""
         SELECT p
         FROM Product p
+        LEFT JOIN FETCH p.category
         WHERE
             (:deleted IS NULL OR p.deleted = :deleted)
             AND (:available IS NULL OR p.available = :available)
