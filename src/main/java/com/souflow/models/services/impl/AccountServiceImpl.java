@@ -67,16 +67,22 @@ public class AccountServiceImpl implements AccountService {
 	
 	@Override
 	public void sendRegisterOtp(AccountRequest request) {
-		if (accountRepo.findByUsername(request.getUsername()).isPresent()) {
+		String username = request.getUsername() != null ? request.getUsername().trim() : "";
+		String email = request.getEmail() != null ? request.getEmail().trim() : "";
+
+		if (accountRepo.findByUsername(username).isPresent()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên tài khoản này đã được sử dụng!");
 		}
-		if (accountRepo.findByEmail(request.getEmail()).isPresent()) {
+		if (accountRepo.findByEmail(email).isPresent()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email này đã được sử dụng!");
 		}
 
-		String otp = otpService.generateRegisterOtp(request.getEmail(), request);
+		request.setUsername(username);
+		request.setEmail(email);
+
+		String otp = otpService.generateRegisterOtp(email, request);
 		try {
-			emailService.sendRegisterOtpEmail(request.getEmail(), otp);
+			emailService.sendRegisterOtpEmail(email, otp);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi gửi mã OTP qua email");
@@ -86,33 +92,39 @@ public class AccountServiceImpl implements AccountService {
 	@Override
 	@Transactional
 	public AuthResponse verifyRegisterOtp(VerifyOtpRequest request) {
-		boolean isValid = otpService.validateRegisterOtp(request.getEmail(), request.getOtp());
+		String email = request.getEmail() != null ? request.getEmail().trim() : "";
+		String otp = request.getOtp() != null ? request.getOtp().trim() : "";
+
+		boolean isValid = otpService.validateRegisterOtp(email, otp);
 		if (!isValid) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã OTP không hợp lệ hoặc đã hết hạn!");
 		}
 
-		AccountRequest registerData = otpService.getRegisterData(request.getEmail());
+		AccountRequest registerData = otpService.getRegisterData(email);
 		if (registerData == null) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thông tin đăng ký đã hết hạn. Vui lòng thực hiện lại!");
 		}
 
-		if (accountRepo.findByUsername(registerData.getUsername()).isPresent()) {
+		String username = registerData.getUsername() != null ? registerData.getUsername().trim() : "";
+		if (accountRepo.findByUsername(username).isPresent()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên tài khoản này đã được sử dụng!");
 		}
-		if (accountRepo.findByEmail(registerData.getEmail()).isPresent()) {
+		if (accountRepo.findByEmail(email).isPresent()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email này đã được sử dụng!");
 		}
 
 		Role role = roleRepo.findByCode(RoleCode.USER)
 				.orElseThrow(() -> new EntityNotFoundException("Role USER not found"));
 
+		registerData.setUsername(username);
+		registerData.setEmail(email);
 		Account account = accountMapper.toEntity(registerData);
 		account.setPassword(passwordEncoder.encode(registerData.getPassword()));
 		account.setRole(role);
 		account.setCreatedDate(LocalDateTime.now());
 		account = accountRepo.save(account);
 		clearAccountCaches(account);
-		otpService.deleteRegisterData(request.getEmail());
+		otpService.deleteRegisterData(email);
 
 		String token = jwtUtil.generateToken(account.getUsername(), account.getRole().getCode().name());
 		String refreshToken = refreshTokenService.generateAndSaveRefreshToken(account.getUsername(), false);
