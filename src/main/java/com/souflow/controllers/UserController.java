@@ -171,12 +171,12 @@ public class UserController {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        OrderResponse orderResponse = orderService.save(request);
-        
-        if (!("COD".equalsIgnoreCase(request.getPaymentMethod()) || "STORE".equalsIgnoreCase(request.getPaymentMethod()))) {
-            orderService.updateStatus(Long.valueOf(orderResponse.getPk()), OrderStatus.WAITING_PAYMENT);
-            orderResponse = orderService.findByPk(Long.valueOf(orderResponse.getPk()));
+        if ("COD".equalsIgnoreCase(request.getPaymentMethod()) || "STORE".equalsIgnoreCase(request.getPaymentMethod())) {
+            request.setStatus(OrderStatus.PENDING);
+        } else {
+            request.setStatus(OrderStatus.WAITING_PAYMENT);
         }
+        OrderResponse orderResponse = orderService.save(request);
         
         if ("COD".equalsIgnoreCase(request.getPaymentMethod()) || "STORE".equalsIgnoreCase(request.getPaymentMethod())) {
             // COD hoặc STORE: tăng sales ngay và gửi thông báo WebSocket

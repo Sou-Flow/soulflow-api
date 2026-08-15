@@ -17,7 +17,7 @@ public class JwtUtil {
     @Value("${jwt.secret:blackfloydcantbreathebecausea12kneesonhisneckforusingacounterfeitmoneytobuyabanana}")
     private String secret;
 
-    @Value("${jwt.expiration:7200000}")
+    @Value("${jwt.expiration:1800000}")
     private long expiration;
     
     private SecretKey getKey() {
