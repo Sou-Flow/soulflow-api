@@ -16,18 +16,26 @@ import com.souflow.models.entities.OrderDetail;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.beans.factory.annotation.Value;
+
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
     private final JavaMailSender mailSender;
+
+    @Value("${spring.mail.from:${MAIL_FROM:no-reply@souflow.shop}}")
+    private String mailFrom;
+
+    @Value("${spring.mail.from-name:${MAIL_FROM_NAME:SouFlow Botanical Artistry}}")
+    private String mailFromName;
     
     @Async
     public void sendEmailWithInlineImage(String to, Order order) throws Exception { //asynchronous with js
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        helper.setFrom("nv80804@gmail.com");
+        helper.setFrom(mailFrom, mailFromName);
         helper.setTo(to);
         helper.setSubject("Thông tin đơn hàng");
 
@@ -119,7 +127,7 @@ public class EmailService {
         message.setHeader("X-Auto-Response-Suppress", "All");
         
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-        helper.setFrom("nv80804@gmail.com", "SouFlow Flower Shop");
+        helper.setFrom(mailFrom, mailFromName);
         helper.setTo(to);
         helper.setSubject("[SouFlow] Mã xác thực đặt lại mật khẩu của bạn: " + otp);
 
@@ -159,7 +167,7 @@ public class EmailService {
         message.setHeader("X-Auto-Response-Suppress", "All");
 
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-        helper.setFrom("nv80804@gmail.com", "SouFlow Flower Shop");
+        helper.setFrom(mailFrom, mailFromName);
         helper.setTo(to);
         helper.setSubject("[SouFlow] Mã xác thực đăng ký tài khoản của bạn: " + otp);
 
