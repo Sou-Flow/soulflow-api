@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import com.souflow.models.entities.Account;
 import com.souflow.models.entities.Order;
 import com.souflow.models.entities.OrderDetail;
+import com.souflow.models.enums.OrderStatus;
 import com.souflow.models.repositories.OrderRepository;
 import com.souflow.models.requests.OrderRequest;
 import com.souflow.models.responses.OrderResponse;
@@ -84,6 +85,11 @@ public abstract class OrderMapper {
 		}
 		if (order.getPaymentMethod() == null || order.getPaymentMethod().trim().isEmpty()) {
 			order.setPaymentMethod("COD");
+		}
+		if (request.getStatus() != null) {
+			order.setStatus(request.getStatus());
+		} else if (order.getStatus() == null) {
+			order.setStatus(OrderStatus.PENDING);
 		}
 		if (order.getOrderDetails() != null) {
 			for (OrderDetail od : order.getOrderDetails()) {
