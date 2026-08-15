@@ -115,11 +115,23 @@ public class EmailService {
     @Async
     public void sendOtpEmail(String to, String otp) throws Exception {
         MimeMessage message = mailSender.createMimeMessage();
+        message.setHeader("Auto-Submitted", "auto-generated");
+        message.setHeader("X-Auto-Response-Suppress", "All");
+        
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-        helper.setFrom("nv80804@gmail.com");
+        helper.setFrom("nv80804@gmail.com", "SouFlow Flower Shop");
         helper.setTo(to);
-        helper.setSubject("Mã xác thực quên mật khẩu");
+        helper.setSubject("[SouFlow] Mã xác thực đặt lại mật khẩu của bạn: " + otp);
+
+        String plainText = """
+        SouFlow - Mã xác thực đặt lại mật khẩu
+        
+        Mã xác thực OTP của bạn là: %s
+        Mã này có hiệu lực trong vòng 5 phút. Vui lòng không chia sẻ mã này cho bất kỳ ai.
+        
+        SouFlow • Tinh hoa hoa tươi nghệ thuật & quà tặng cao cấp
+        Website: souflow.shop
+        """.formatted(otp);
 
         String htmlContent = """
         <div style="font-family:Arial, sans-serif; max-width:500px; margin:auto; border:1px solid #ddd; padding: 20px; text-align: center;">
@@ -132,22 +144,36 @@ public class EmailService {
             <p style="color: #6c757d; font-size: 14px;">Mã OTP này có hiệu lực trong vòng 5 phút. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
             <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.</p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-            <p style="font-size: 12px; color: #999;">Trân trọng,<br/>Đội ngũ Soul Flow</p>
+            <p style="font-size: 12px; color: #999;">Trân trọng,<br/>Đội ngũ SouFlow</p>
         </div>
         """.formatted(otp);
 
-        helper.setText(htmlContent, true);
+        helper.setText(plainText, htmlContent);
         mailSender.send(message);
     }
 
     @Async
     public void sendRegisterOtpEmail(String to, String otp) throws Exception {
         MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+        message.setHeader("Auto-Submitted", "auto-generated");
+        message.setHeader("X-Auto-Response-Suppress", "All");
 
-        helper.setFrom("nv80804@gmail.com");
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+        helper.setFrom("nv80804@gmail.com", "SouFlow Flower Shop");
         helper.setTo(to);
-        helper.setSubject("Mã xác thực đăng ký tài khoản SouFlow");
+        helper.setSubject("[SouFlow] Mã xác thực đăng ký tài khoản của bạn: " + otp);
+
+        String plainText = """
+        SouFlow Botanical Artistry - Xác thực tạo tài khoản
+        
+        Chào mừng bạn đến với SouFlow!
+        Mã xác thực OTP đăng ký của bạn là: %s
+        
+        Mã OTP này có hiệu lực trong vòng 5 phút. Vui lòng không chia sẻ cho bất kỳ ai.
+        
+        SouFlow • Tinh hoa hoa tươi nghệ thuật & quà tặng cao cấp
+        Hotline: 0901 234 567 | Website: souflow.shop
+        """.formatted(otp);
 
         String htmlContent = """
         <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 520px; margin: auto; border: 1px solid #EBE5DA; border-radius: 16px; overflow: hidden; background: #FAF7F2;">
@@ -174,7 +200,7 @@ public class EmailService {
         </div>
         """.formatted(otp);
 
-        helper.setText(htmlContent, true);
+        helper.setText(plainText, htmlContent);
         mailSender.send(message);
     }
 }
