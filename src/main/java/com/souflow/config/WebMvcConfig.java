@@ -18,6 +18,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addPathPatterns(
                     "/login", 
                     "/register",
+                    "/register/**",
                     "/google/login",
                     "/forgot-password",
                     "/verify-otp",

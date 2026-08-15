@@ -54,6 +54,16 @@ public class NonUserController  {
         return accountService.register(request);
     }
 
+    @PostMapping("/register/send-otp")
+    void sendRegisterOtp(@RequestBody com.souflow.models.requests.AccountRequest request) {
+        accountService.sendRegisterOtp(request);
+    }
+
+    @PostMapping("/register/verify-otp")
+    AuthResponse verifyRegisterOtp(@RequestBody VerifyOtpRequest request) {
+        return accountService.verifyRegisterOtp(request);
+    }
+
     @PostMapping("/google/login")
     AuthResponse googleLogin(@RequestBody GoogleTokenDTO token) {
         return accountService.loginWithGoogle(token);

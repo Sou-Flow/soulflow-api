@@ -66,6 +66,69 @@ public class AccountServiceImpl implements AccountService {
 	private final RefreshTokenService refreshTokenService;
 	
 	@Override
+	public void sendRegisterOtp(AccountRequest request) {
+		if (accountRepo.findByUsername(request.getUsername()).isPresent()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên tài khoản này đã được sử dụng!");
+		}
+		if (accountRepo.findByEmail(request.getEmail()).isPresent()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email này đã được sử dụng!");
+		}
+
+		String otp = otpService.generateRegisterOtp(request.getEmail(), request);
+		try {
+			emailService.sendRegisterOtpEmail(request.getEmail(), otp);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi gửi mã OTP qua email");
+		}
+	}
+
+	@Override
+	@Transactional
+	public AuthResponse verifyRegisterOtp(VerifyOtpRequest request) {
+		boolean isValid = otpService.validateRegisterOtp(request.getEmail(), request.getOtp());
+		if (!isValid) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã OTP không hợp lệ hoặc đã hết hạn!");
+		}
+
+		AccountRequest registerData = otpService.getRegisterData(request.getEmail());
+		if (registerData == null) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thông tin đăng ký đã hết hạn. Vui lòng thực hiện lại!");
+		}
+
+		if (accountRepo.findByUsername(registerData.getUsername()).isPresent()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên tài khoản này đã được sử dụng!");
+		}
+		if (accountRepo.findByEmail(registerData.getEmail()).isPresent()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email này đã được sử dụng!");
+		}
+
+		Role role = roleRepo.findByCode(RoleCode.USER)
+				.orElseThrow(() -> new EntityNotFoundException("Role USER not found"));
+
+		Account account = accountMapper.toEntity(registerData);
+		account.setPassword(passwordEncoder.encode(registerData.getPassword()));
+		account.setRole(role);
+		account.setCreatedDate(LocalDateTime.now());
+		account = accountRepo.save(account);
+		clearAccountCaches(account);
+		otpService.deleteRegisterData(request.getEmail());
+
+		String token = jwtUtil.generateToken(account.getUsername(), account.getRole().getCode().name());
+		String refreshToken = refreshTokenService.generateAndSaveRefreshToken(account.getUsername(), false);
+
+		return AuthResponse.builder()
+				.token(token)
+				.refreshToken(refreshToken)
+				.pk(String.valueOf(account.getPk()))
+				.fullname(account.getFullname())
+				.email(account.getEmail())
+				.photo(account.getPhoto())
+				.roleCode(account.getRole().getCode().name())
+				.build();
+	}
+
+	@Override
 	@Transactional
 	public AuthResponse register(AccountRequest request) {
 		if (accountRepo.findByUsername(request.getUsername()).isPresent()) {
