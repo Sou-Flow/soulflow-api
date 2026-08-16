@@ -30,5 +30,8 @@ public interface ProductService {
 			Integer pageSize
 	);
 	Integer decreaseQuantity(Long pk, Integer amount);
-	java.util.List<ProductResponse> getTop12Bestsellers();
+	java.util.List<ProductResponse> getTop5Bestsellers();
+	default java.util.List<ProductResponse> getTop12Bestsellers() {
+		return getTop5Bestsellers();
+	}
 }

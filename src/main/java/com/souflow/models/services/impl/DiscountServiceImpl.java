@@ -34,10 +34,9 @@ import lombok.RequiredArgsConstructor;
 public class DiscountServiceImpl implements DiscountService {
 
     private final DiscountRepository discountRepo;
-
     private final DiscountMapper discountMapper;
-
     private final CacheManager cacheManager;
+    private final com.souflow.models.services.SystemLogService systemLogService;
 
     @Override
     @Transactional
@@ -46,6 +45,11 @@ public class DiscountServiceImpl implements DiscountService {
     public DiscountResponse save(DiscountRequest request) {
         Discount discount = discountMapper.toEntity(request);
         Discount saved = discountRepo.save(discount);
+        if (request.getPk() == null) {
+            systemLogService.log("DISCOUNT", "CREATE_DISCOUNT", saved.getCode(), "Tạo mã giảm giá mới: " + saved.getCode() + " (Giảm " + saved.getPercentage() + "%)");
+        } else {
+            systemLogService.log("DISCOUNT", "UPDATE_DISCOUNT", saved.getCode(), "Cập nhật mã giảm giá: " + saved.getCode() + " (Giảm " + saved.getPercentage() + "%)");
+        }
         return discountMapper.toResponse(saved);
     }
 
@@ -57,6 +61,7 @@ public class DiscountServiceImpl implements DiscountService {
     })
     public void softDeleteByPk(Long discountPk) {
         discountRepo.softDelete(discountPk);
+        systemLogService.log("DISCOUNT", "DELETE_DISCOUNT", "Voucher #" + discountPk, "Xóa mã giảm giá #" + discountPk);
     }
 
     @Override

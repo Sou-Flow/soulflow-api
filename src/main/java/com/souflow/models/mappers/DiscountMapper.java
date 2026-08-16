@@ -86,9 +86,9 @@ public abstract class DiscountMapper {
 		}
       
         if (request.getCode() == null || request.getCode().trim().isEmpty()) {
-            discount.setCode("D-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+            discount.setCode("DISC-" + java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase());
         } else {
-            discount.setCode(request.getCode());
+            discount.setCode(request.getCode().trim().toUpperCase());
         }
         
         if (discount.getCurrentUsage() == null) {

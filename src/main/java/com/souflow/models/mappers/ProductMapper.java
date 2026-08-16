@@ -81,7 +81,7 @@ public abstract class ProductMapper {
 			product.setDeleted(oldProduct.getDeleted());
 			return;
 		}
-		product.setCode("P-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+		product.setCode("SP-" + java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase());
 		product.setCreatedDate(LocalDateTime.now());
 		product.setSales(Long.valueOf(0));
 		Category category = new Category();

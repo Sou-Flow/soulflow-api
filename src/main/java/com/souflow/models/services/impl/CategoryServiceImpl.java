@@ -32,6 +32,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepo;
     private final CategoryMappper categoryMapper;
+    private final com.souflow.models.services.SystemLogService systemLogService;
     
     @Override
     @Transactional
@@ -43,6 +44,11 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryResponse save(CategoryRequest request) {
         Category category = categoryMapper.toEntity(request);
         Category saved = categoryRepo.save(category);
+        if (request.getPk() == null) {
+            systemLogService.log("CATEGORY", "CREATE_CATEGORY", saved.getNameVn(), "Tạo danh mục mới: \"" + saved.getNameVn() + "\" (" + saved.getCode() + ")");
+        } else {
+            systemLogService.log("CATEGORY", "UPDATE_CATEGORY", saved.getNameVn(), "Cập nhật danh mục: \"" + saved.getNameVn() + "\" (" + saved.getCode() + ")");
+        }
         return categoryMapper.toBasicResponse(saved);
     }
 
@@ -55,6 +61,7 @@ public class CategoryServiceImpl implements CategoryService {
     })
     public void softDeleteByPk(Long categoryPk) {
         categoryRepo.softDelete(categoryPk);
+        systemLogService.log("CATEGORY", "DELETE_CATEGORY", "Danh mục #" + categoryPk, "Xóa danh mục #" + categoryPk);
     }
 
     @Override
