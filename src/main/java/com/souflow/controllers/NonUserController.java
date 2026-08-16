@@ -28,6 +28,8 @@ import com.souflow.models.services.*;
 import com.souflow.models.services.impl.AccountServiceImpl.GoogleTokenDTO;
 import com.souflow.models.services.impl.DiscordNotificationService;
 import com.souflow.models.responses.DiscountResponse;
+import com.souflow.models.responses.NotificationMessage;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import lombok.RequiredArgsConstructor;
 
@@ -43,6 +45,7 @@ public class NonUserController  {
     private final PaymentService paymentService;
     private final DiscordNotificationService discordService;
     private final DiscountService discountService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @PostMapping("/login")
     AuthResponse login(@RequestBody AuthRequest request) {
@@ -140,7 +143,7 @@ public class NonUserController  {
 
     @GetMapping("/product/top-sales")
     List<ProductResponse> getTopSales() {
-        return productService.getTop12Bestsellers();
+        return productService.getTop5Bestsellers();
     }
 
     @GetMapping("/product/detail/{pk}")
@@ -175,5 +178,18 @@ public class NonUserController  {
     @PostMapping("/notify/custom-order")
     public void notifyCustomOrder(@RequestBody java.util.Map<String, Object> payload) {
         discordService.sendCustomOrderNotification(payload);
+        
+        try {
+            NotificationMessage msg = NotificationMessage.builder()
+                .type("CUSTOM_ORDER")
+                .title("Yêu cầu thiết kế hoa riêng")
+                .message("Có khách hàng vừa gửi yêu cầu đặt hoa theo yêu cầu mới.")
+                .referenceId(java.util.UUID.randomUUID().toString())
+                .timestamp(LocalDateTime.now().toString())
+                .build();
+            messagingTemplate.convertAndSend("/topic/admin.notifications", msg);
+        } catch (Exception e) {
+            // Log and ignore to prevent failing the webhook call
+        }
     }
 }

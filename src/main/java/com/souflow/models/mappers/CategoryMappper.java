@@ -64,7 +64,7 @@ public abstract class CategoryMappper {
 			}
 			return;
 		}
-        String code = "C-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String code = "CAT-" + java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
 		category.setCode(code);
 		category.setDeleted(false);
     }

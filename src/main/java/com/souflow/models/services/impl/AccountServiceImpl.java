@@ -64,6 +64,7 @@ public class AccountServiceImpl implements AccountService {
 	private final OtpService otpService;
 	private final EmailService emailService;
 	private final RefreshTokenService refreshTokenService;
+	private final com.souflow.models.services.SystemLogService systemLogService;
 	
 	@Override
 	public void sendRegisterOtp(AccountRequest request) {
@@ -203,6 +204,7 @@ public class AccountServiceImpl implements AccountService {
 		
 		// Send it back to frontend
 		try {
+			systemLogService.log("AUTH", "LOGIN_PASSWORD", account.getUsername(), account.getRole().getCode().name(), account.getUsername(), "Đăng nhập tài khoản / mật khẩu thành công", null);
 			return AuthResponse.builder()
 				.token(token)
 				.refreshToken(refreshToken)
@@ -250,6 +252,8 @@ public class AccountServiceImpl implements AccountService {
                 account.getRole().getCode().name()
             );
             String refreshToken = refreshTokenService.generateAndSaveRefreshToken(account.getUsername(), true);
+
+            systemLogService.log("AUTH", "LOGIN_GOOGLE", account.getUsername(), account.getRole().getCode().name(), account.getEmail(), "Đăng nhập hệ thống qua Google OAuth thành công", null);
 
             return AuthResponse.builder()
 				.token(token)

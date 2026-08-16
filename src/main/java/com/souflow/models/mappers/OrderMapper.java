@@ -72,7 +72,7 @@ public abstract class OrderMapper {
 			order.setDeleted(oldOrder.getDeleted());
 			return;
 		}
-		order.setCode("O-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+		order.setCode("ORD-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
 		order.setCreatedDate(LocalDateTime.now());
 		order.setExpiredDate(LocalDateTime.now().plusWeeks(2));
 		order.setExpired(false);

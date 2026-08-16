@@ -34,8 +34,8 @@ import lombok.RequiredArgsConstructor;
 public class ProductServiceImpl implements ProductService {
 	
 	private final ProductRepository productRepo;
-	
 	private final ProductMapper productMapper;
+	private final com.souflow.models.services.SystemLogService systemLogService;
 	
 	@Override
 	@Transactional
@@ -48,6 +48,11 @@ public class ProductServiceImpl implements ProductService {
 	    Product product = productMapper.toEntity(request);
 	    Product saved = productRepo.save(product);
         refreshTopSalesCache();
+        if (request.getPk() == null) {
+            systemLogService.log("PRODUCT", "CREATE_PRODUCT", saved.getNameVn(), "Tạo mới sản phẩm \"" + saved.getNameVn() + "\" (" + saved.getCode() + ") - Giá: " + saved.getPrice() + " đ, Tồn: " + saved.getQuantity());
+        } else {
+            systemLogService.log("PRODUCT", "UPDATE_PRODUCT", saved.getNameVn(), "Cập nhật sản phẩm \"" + saved.getNameVn() + "\" (" + saved.getCode() + ") - Giá: " + saved.getPrice() + " đ, Tồn: " + saved.getQuantity() + ", Trạng thái: " + (Boolean.TRUE.equals(saved.getAvailable()) ? "Kinh doanh" : "Tạm ngưng"));
+        }
 	    return productMapper.toBasicResponse(saved);
 	}
 	
@@ -65,6 +70,7 @@ public class ProductServiceImpl implements ProductService {
 		exist.setDeleted(true);
 		productRepo.save(exist);
         refreshTopSalesCache();
+        systemLogService.log("PRODUCT", "DELETE_PRODUCT", exist.getNameVn(), "Xóa sản phẩm \"" + exist.getNameVn() + "\" (" + exist.getCode() + ")");
 	}
 	
 	@Override
@@ -135,15 +141,20 @@ public class ProductServiceImpl implements ProductService {
 
 	@org.springframework.scheduling.annotation.Scheduled(fixedDelay = 900000)
 	public void refreshTopSalesCache() {
-		List<Product> products = productRepo.findTop12ByDeletedFalseAndCustomisedFalseOrderBySalesDesc();
+		List<Product> products = productRepo.findTop5ByDeletedFalseAndCustomisedFalseOrderBySalesDesc();
 		this.topSalesCache = productMapper.toBasicResponseList(products);
 	}
 
 	@Override
-	public List<ProductResponse> getTop12Bestsellers() {
+	public List<ProductResponse> getTop5Bestsellers() {
 		if (topSalesCache.isEmpty()) {
 			refreshTopSalesCache();
 		}
 		return topSalesCache;
+	}
+
+	@Override
+	public List<ProductResponse> getTop12Bestsellers() {
+		return getTop5Bestsellers();
 	}
 }
