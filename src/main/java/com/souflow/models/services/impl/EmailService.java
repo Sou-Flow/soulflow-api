@@ -129,7 +129,7 @@ public class EmailService {
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
         helper.setFrom(mailFrom, mailFromName);
         helper.setTo(to);
-        helper.setSubject("[SouFlow] Mã xác thực đặt lại mật khẩu của bạn: " + otp);
+        helper.setSubject("[SouFlow] Mã xác thực đặt lại mật khẩu");
 
         String plainText = """
         SouFlow - Mã xác thực đặt lại mật khẩu
@@ -169,7 +169,7 @@ public class EmailService {
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
         helper.setFrom(mailFrom, mailFromName);
         helper.setTo(to);
-        helper.setSubject("[SouFlow] Mã xác thực đăng ký tài khoản của bạn: " + otp);
+        helper.setSubject("[SouFlow] Mã xác thực đăng ký tài khoản");
 
         String plainText = """
         SouFlow Botanical Artistry - Xác thực tạo tài khoản
