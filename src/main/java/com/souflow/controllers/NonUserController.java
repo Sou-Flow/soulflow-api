@@ -45,6 +45,7 @@ public class NonUserController  {
     private final PaymentService paymentService;
     private final DiscordNotificationService discordService;
     private final DiscountService discountService;
+    private final CustomOrderService customOrderService;
     private final SimpMessagingTemplate messagingTemplate;
 
     @PostMapping("/login")
@@ -176,20 +177,13 @@ public class NonUserController  {
     }
 
     @PostMapping("/notify/custom-order")
-    public void notifyCustomOrder(@RequestBody java.util.Map<String, Object> payload) {
-        discordService.sendCustomOrderNotification(payload);
-        
-        try {
-            NotificationMessage msg = NotificationMessage.builder()
-                .type("CUSTOM_ORDER")
-                .title("Yêu cầu thiết kế hoa riêng")
-                .message("Có khách hàng vừa gửi yêu cầu đặt hoa theo yêu cầu mới.")
-                .referenceId(java.util.UUID.randomUUID().toString())
-                .timestamp(LocalDateTime.now().toString())
-                .build();
-            messagingTemplate.convertAndSend("/topic/admin.notifications", msg);
-        } catch (Exception e) {
-            // Log and ignore to prevent failing the webhook call
+    public void notifyCustomOrder(@RequestBody java.util.Map<String, Object> payload, jakarta.servlet.http.HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        } else if (ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
         }
+        customOrderService.recordRequest(payload, ip);
     }
 }
