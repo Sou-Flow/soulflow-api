@@ -30,6 +30,7 @@ public abstract class OrderMapper {
 	@Mapping(target = "code", 		 			ignore = true)
 	@Mapping(target = "total", 		 			ignore = true)
 	@Mapping(target = "createdDate", 			ignore = true)
+	@Mapping(target = "updatedDate", 			ignore = true)
 	@Mapping(target = "expiredDate", 			ignore = true)
 	@Mapping(target = "expired", 				ignore = true)
 	@Mapping(target = "account", 	 			ignore = true)
@@ -38,6 +39,7 @@ public abstract class OrderMapper {
 	public abstract Order toEntity(OrderRequest request);
 	
 	@Mapping(target = "createdDate", 	source = "createdDate", dateFormat = "dd-MM-yyyy HH:mm:ss")
+	@Mapping(target = "updatedDate", 	source = "updatedDate", dateFormat = "dd-MM-yyyy HH:mm:ss")
 	@Mapping(target = "expiredDate", 	source = "expiredDate", dateFormat = "dd-MM-yyyy HH:mm:ss")
 	@Mapping(target = "total", 			source = "total", numberFormat = "#.##")
 	@Mapping(target = "shippingFee", 	source = "shippingFee", numberFormat = "#.##")
@@ -58,6 +60,7 @@ public abstract class OrderMapper {
 			order.setExpiredDate(oldOrder.getExpiredDate());
 			order.setExpired(oldOrder.getExpired());
 			order.setCreatedDate(oldOrder.getCreatedDate());
+			order.setUpdatedDate(oldOrder.getUpdatedDate());
 			order.setAccount(oldOrder.getAccount());
 			if (order.getShippingFee() == null) {
 				order.setShippingFee(oldOrder.getShippingFee());
@@ -68,13 +71,18 @@ public abstract class OrderMapper {
 			if (order.getOrderDetails() == null || order.getOrderDetails().isEmpty()) {
 				order.setOrderDetails(oldOrder.getOrderDetails());
 			}
+			if (request.getStatus() != null && request.getStatus() != oldOrder.getStatus()) {
+				order.setStatus(request.getStatus());
+				order.setUpdatedDate(LocalDateTime.now());
+			}
 			order.calTotal();
 			order.setDeleted(oldOrder.getDeleted());
 			return;
 		}
 		order.setCode("ORD-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
 		order.setCreatedDate(LocalDateTime.now());
-		order.setExpiredDate(LocalDateTime.now().plusWeeks(2));
+		order.setUpdatedDate(null);
+		order.setExpiredDate(null);
 		order.setExpired(false);
 		if (request.getAccountPk() != null) {
 			Account account = new Account();

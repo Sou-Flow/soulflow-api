@@ -101,8 +101,26 @@ public abstract class AccountMapper {
 			if (request.getEmail() == null || request.getEmail().isBlank()) {
 				account.setEmail(oldAccount.getEmail());
 			}
+
+			if (request.getUsername() == null || request.getUsername().isBlank()) {
+				account.setUsername(oldAccount.getUsername());
+			}
+
+			if (request.getFullname() == null || request.getFullname().isBlank()) {
+				account.setFullname(oldAccount.getFullname());
+			}
+
+			if (request.getPhone() == null) {
+				account.setPhone(oldAccount.getPhone());
+			}
+
+			if (request.getAddress() == null) {
+				account.setAddress(oldAccount.getAddress());
+			}
 			
-			if (request.getRoleRequest() == null) {
+			if (request.getRoleRequest() == null || request.getRoleRequest().getCode() == null) {
+				account.setRole(oldAccount.getRole());
+			} else if (oldAccount.getRole() != null && oldAccount.getRole().getCode() == request.getRoleRequest().getCode()) {
 				account.setRole(oldAccount.getRole());
 			}
 

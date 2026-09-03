@@ -326,8 +326,8 @@ public class DashboardServiceImpl implements DashboardService {
             return new TopSellingProductDTO(id, name, sold, revenue);
         }).collect(Collectors.toList());
 
-        // 5. Low Stock Products
-        List<Object[]> lowStockDataRaw = productRepository.getLowStockProducts(5);
+        // 5. Low Stock Products (<= 10)
+        List<Object[]> lowStockDataRaw = productRepository.getLowStockProducts(10);
         List<LowStockProductDTO> lowStockProducts = lowStockDataRaw.stream().map(row -> {
             String id = (String) row[0];
             String name = (String) row[1];

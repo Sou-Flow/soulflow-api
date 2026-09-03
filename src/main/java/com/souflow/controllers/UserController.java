@@ -77,7 +77,7 @@ public class UserController {
         request.setRoleRequest(null); // Chặn user tự nâng quyền ADMIN qua update profile
         request.setDisabled(null);
 
-        if (file != null) {
+        if (file != null && !file.isEmpty()) {
             request.setPhoto(imageService.upload(file));
         } else {
             request.setPhoto(acc.getPhoto());
@@ -214,7 +214,7 @@ public class UserController {
             @RequestParam(required = false) LocalDateTime fromDate,
             @RequestParam(required = false) LocalDateTime toDate,
 			@RequestParam(required = false) OrderStatus status,
-            @RequestParam(defaultValue = "false") Boolean expired,
+            @RequestParam(required = false) Boolean expired,
             @RequestParam(defaultValue = "false") Boolean deleted,
             @RequestParam(defaultValue = "DESC") SortOrder sortOrder,
             @RequestParam(defaultValue = "0") Integer pageNumber,
