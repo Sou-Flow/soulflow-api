@@ -31,6 +31,8 @@ public class OrderResponse {
 
     private String createdDate;
 
+    private String updatedDate;
+
     private String expiredDate;
     
     private String status;

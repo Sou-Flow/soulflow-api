@@ -122,7 +122,7 @@ public class OrderServiceImpl implements OrderService {
                 
                 int oldQuantity = detail.getProduct().getQuantity();
                 int newQuantity = oldQuantity - detail.getQuantity();
-                if (oldQuantity > 10 && newQuantity <= 10) {
+                if (newQuantity <= 10) {
                     NotificationMessage msg = NotificationMessage.builder()
                         .type("LOW_STOCK")
                         .title("Cảnh báo kho")
@@ -259,11 +259,7 @@ public class OrderServiceImpl implements OrderService {
             Boolean expired,
             Boolean deleted
     ) {
-        int effectedRows = orderRepo.checkAndExpireBeforePagination(keyword, fromDate, toDate, expired, deleted);
-        if (effectedRows != 0) {
-            Cache cache = cacheManager.getCache("orderPages");
-            cache.clear();
-        }
+        // Orders represent historical transactions and should not be expired or hidden from order history.
     }
 
     @Override
@@ -304,22 +300,47 @@ public class OrderServiceImpl implements OrderService {
     public void markOrderAsPaidUnconditionally(Long orderPk) {
         Order order = orderRepo.findById(orderPk).orElse(null);
         if (order != null && order.getStatus() != OrderStatus.PAID) {
-            order.setStatus(OrderStatus.PAID);
-            orderRepo.save(order);
-            if (order.getOrderDetails() != null) {
-                order.getOrderDetails().forEach(detail -> {
-                    productRepo.increaseSales(detail.getProduct().getPk(), detail.getQuantity());
-                });
+            boolean wasCancelled = order.getStatus() == OrderStatus.CANCELLED;
+            boolean stockAvailable = true;
+            if (wasCancelled && order.getOrderDetails() != null) {
+                for (com.souflow.models.entities.OrderDetail detail : order.getOrderDetails()) {
+                    int rows = productRepo.decreaseQuantity(detail.getProduct().getPk(), detail.getQuantity());
+                    if (rows == 0) {
+                        stockAvailable = false;
+                    }
+                }
             }
-            
-            NotificationMessage msg = NotificationMessage.builder()
-                .type("ORDER_PAID")
-                .title("Đơn hàng đã thanh toán")
-                .message("Đơn hàng " + order.getCode() + " vừa được thanh toán thành công.")
-                .referenceId(order.getCode())
-                .timestamp(LocalDateTime.now().toString())
-                .build();
-            messagingTemplate.convertAndSend("/topic/admin.notifications", msg);
+
+            if (stockAvailable) {
+                order.setStatus(OrderStatus.PAID);
+                order.setUpdatedDate(LocalDateTime.now());
+                orderRepo.save(order);
+                if (order.getOrderDetails() != null) {
+                    order.getOrderDetails().forEach(detail -> {
+                        productRepo.increaseSales(detail.getProduct().getPk(), detail.getQuantity());
+                    });
+                }
+                
+                NotificationMessage msg = NotificationMessage.builder()
+                    .type("ORDER_PAID")
+                    .title("Đơn hàng đã thanh toán")
+                    .message("Đơn hàng " + order.getCode() + " vừa được thanh toán thành công" + (wasCancelled ? " (Khôi phục sau quá hạn)" : "") + ".")
+                    .referenceId(order.getCode())
+                    .timestamp(LocalDateTime.now().toString())
+                    .build();
+                messagingTemplate.convertAndSend("/topic/admin.notifications", msg);
+                messagingTemplate.convertAndSend("/topic/order." + order.getCode(), msg);
+            } else {
+                // Tồn kho không còn đủ để phục hồi đơn hàng (đã có người khác mua mất)
+                NotificationMessage alertMsg = NotificationMessage.builder()
+                    .type("REFUND_REQUIRED")
+                    .title("Cảnh báo kho: Cần xử lý hoàn tiền")
+                    .message("Đơn hàng " + order.getCode() + " nhận được thanh toán nhưng sản phẩm đã hết hàng. Vui lòng liên hệ khách để hoàn tiền!")
+                    .referenceId(order.getCode())
+                    .timestamp(LocalDateTime.now().toString())
+                    .build();
+                messagingTemplate.convertAndSend("/topic/admin.notifications", alertMsg);
+            }
             clearRelatedCaches(orderPk);
         }
     }
@@ -349,6 +370,7 @@ public class OrderServiceImpl implements OrderService {
         
         if (status == OrderStatus.CANCELLED && order.getStatus() != OrderStatus.CANCELLED) {
             order.setStatus(OrderStatus.CANCELLED);
+            order.setUpdatedDate(LocalDateTime.now());
             if (order.getOrderDetails() != null) {
                 order.getOrderDetails().forEach(detail -> {
                     productRepo.increaseQuantity(detail.getProduct().getPk(), detail.getQuantity());
@@ -358,6 +380,7 @@ public class OrderServiceImpl implements OrderService {
             clearRelatedCaches(orderPk);
         } else if (order.getStatus() != status) {
             order.setStatus(status);
+            order.setUpdatedDate(LocalDateTime.now());
             orderRepo.save(order);
             // If marked as PAID manually, SePay logic also does it unconditionally but this is a fallback
             if (status == OrderStatus.PAID && order.getOrderDetails() != null) {

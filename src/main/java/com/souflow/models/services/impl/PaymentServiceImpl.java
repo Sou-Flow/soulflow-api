@@ -120,8 +120,20 @@ public class PaymentServiceImpl implements PaymentService {
                 
                 orderService.markOrderAsPaidUnconditionally(orderId);
                 log.info("SePay webhook SUCCESS: Order {} marked as PAID and payment saved", orderId);
+            } else if (order != null && order.getStatus() == OrderStatus.CANCELLED) {
+                // Trường hợp khách chuyển khoản sát nút hoặc sau khi đơn vừa bị hủy tự động:
+                // Vẫn ghi nhận Payment và tự động khôi phục đơn hàng sang PAID
+                Payment payment = new Payment();
+                payment.setOrder(order);
+                payment.setAmount(request.getTransferAmount());
+                payment.setPaymentDate(java.time.LocalDateTime.now());
+                payment.setPaid(true);
+                paymentRepo.save(payment);
+                
+                orderService.markOrderAsPaidUnconditionally(orderId);
+                log.info("SePay webhook: Khôi phục đơn hàng {} đã hủy do nhận được tiền chuyển khoản trễ", orderId);
             } else {
-                log.info("SePay webhook ignored: Order {} not found or not WAITING_PAYMENT/PENDING", orderId);
+                log.info("SePay webhook ignored: Order {} not found or already processed", orderId);
             }
         } catch (Exception e) {
             log.error("Error processing webhook", e);

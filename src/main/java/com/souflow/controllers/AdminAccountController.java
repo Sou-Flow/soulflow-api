@@ -48,7 +48,7 @@ public class AdminAccountController {
         @RequestPart("account") AccountRequest request,
         @RequestPart(value = "file", required = false) MultipartFile file) throws Exception {
         
-        if (file != null) {
+        if (file != null && !file.isEmpty()) {
             request.setPhoto(imageService.upload(file));
         }
 
@@ -83,7 +83,7 @@ public class AdminAccountController {
         @RequestParam(required = false) LocalDateTime fromDate,
         @RequestParam(required = false) LocalDateTime toDate,
         @RequestParam(defaultValue = "false") Boolean deleted,
-        @RequestParam(defaultValue = "false") Boolean disabled,
+        @RequestParam(required = false) Boolean disabled,
         @RequestParam(defaultValue = "ALL") RoleCode role,
         @RequestParam(defaultValue = "DESC") SortOrder sortOrder,
         @RequestParam(defaultValue = "0") Integer pageNumber,

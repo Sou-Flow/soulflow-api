@@ -57,6 +57,10 @@ public class Order {
 	private LocalDateTime createdDate;
 
 	@DateTimeFormat(pattern = "yyyy-MM-dd")
+    @Column(name = "updated_date")
+	private LocalDateTime updatedDate;
+
+	@DateTimeFormat(pattern = "yyyy-MM-dd")
     @Column(name = "expired_date")
 	private LocalDateTime expiredDate;
 

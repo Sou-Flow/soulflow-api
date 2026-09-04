@@ -64,7 +64,7 @@ public class AdminOrderController {
             @RequestParam(required = false) LocalDateTime fromDate,
             @RequestParam(required = false) LocalDateTime toDate,
 			@RequestParam(required = false) OrderStatus status,
-            @RequestParam(defaultValue = "false") Boolean expired,
+            @RequestParam(required = false) Boolean expired,
             @RequestParam(defaultValue = "false") Boolean deleted,
             @RequestParam(defaultValue = "DESC") SortOrder sortOrder,
             @RequestParam(defaultValue = "0") Integer pageNumber,
